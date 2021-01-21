@@ -73,48 +73,11 @@ if __name__=="__main__":
             thread1.join()
         if thread2 != None:
             thread2.join()
-    # for image in glob.glob(os.path.normpath(AD_path), recursive=True):#for loop in order to create a list of images
-    #     AD_images.append(sitk.ReadImage(image, imageIO = "NiftiImageIO"))
-    # for image in glob.glob(os.path.normpath(CTRL_path), recursive=True):
-    #     CTRL_images.append(sitk.ReadImage(image, imageIO = "NiftiImageIO"))
-    # CTRL_data = [sitk.GetArrayViewFromImage(x) for x in CTRL_images]
-    # CTRL_data_resized = np.array([resize(image, (128, 128,128),anti_aliasing=True) for image in CTRL_data])#resize images for Autoencoder
-    # AD_data = [sitk.GetArrayViewFromImage(x) for x in AD_images]
-    # AD_data_resized = np.array([resize(image, (128, 128,128),anti_aliasing=True) for image in AD_data])
+
     print("Time: {}".format(perf_counter()-start))#Print performance time
-#%%MAking labels
-    
-    #one way to permutate data but i can do it better with train_test_split
-    #p = np.random.permutation(data_resized.shape[0])#shuffle AD cases with CTRL
-    #data_resized, labels = data_resized[p,:,:,:], labels[p]
-# #%%
-#     x1 = np.linspace(0, CTRL_data_resized[0].shape[0]-1, CTRL_data_resized[0].shape[0])  
-#     y1 = np.linspace(0, CTRL_data_resized[0].shape[1]-1, CTRL_data_resized[0].shape[1])  
-#     z1 = np.linspace(0, CTRL_data_resized[0].shape[2]-1, CTRL_data_resized[0].shape[2])
-#     X, Y, Z = np.meshgrid(x1, y1, z1)#creating grid matrix
 
-    # #%%just to see if the resize is doing well
-    # import plotly
-    # import plotly.graph_objs as go
-    # from plotly.offline import download_plotlyjs, init_notebook_mode#these two lines are needed for graphic creation. (plotly works on ipython so we need to emulate it)
-    # init_notebook_mode()
-    # data_ein=np.einsum('ijk->jki', CTRL_data_resized[0])#here i swap the two directions "x" and "z" in order to rotate the image
-    # fig = go.Figure(data=go.Volume(
-    # x=X.flatten(),
-    # y=Y.flatten(),
-    # z=Z.flatten(),
-    # value=data_ein.flatten(),
-    # isomin=CTRL_data_resized[0].max()/2,#min value of isosurface ATTENTION: A bigger calcoulation time could bring the rendering to a runtime  error if we use the browser option
-    # isomax=CTRL_data_resized[0].max(),
-    # opacity=0.5, # needs to be small to see through all surfaces
-    # surface_count=15, # needs to be a large number for good volume rendering
-    # caps=dict(x_show=False, y_show=False, z_show=False)
-    # ))
-
-    # fig.show(renderer="browser") 
 #%%Select a zone with mouse
     import cv2
-    from skimage import data
     
     def draw_rect(image):
         '''Record Left mouse button interaction in order to draw a rectangle.
@@ -158,12 +121,12 @@ if __name__=="__main__":
                 break
             elif key == ord("e"): # Hit 'c' to exit
                 cv2.destroyWindow(win_name)
-                return np.array([[None,None], [None,None]])
+                return np.array([[0,0], [image.shape[0],image.shape[1]]])
         
         # close the open windows
         cv2.destroyWindow(win_name)
         if len(rect_pts) == 0:
-            return np.array([[None,None], [None,None]])
+            return np.array([[0,0], [image.shape[0],image.shape[1]]])
         
         return np.round(np.array(rect_pts)/zoom) 
     
@@ -180,7 +143,7 @@ if __name__=="__main__":
         
         selected_slice_axial = int(input('Select axial image to crop in order to select the third dimention of your ROI (Axial slices 0-{}):'.format(CTRL_images[0].GetSize()[0])))
         print('-'*30)
-        print('Select Coronal Area')
+        print('Select Axial Area')
         print('-'*30)
         points_axial = draw_rect(sitk.GetArrayViewFromImage(CTRL_images[0])[selected_slice_axial,:,:])
         #Including the case in wich the user select the box in any possible direcion 
@@ -193,7 +156,8 @@ if __name__=="__main__":
                 temp = points_coronal[0,0]
                 points_coronal[0,0]=points_coronal[1,0]
                 points_coronal[1,0]=temp
-            if points_axial[0,1]>points_coronal[1,1]:
+        if (points_axial[0,1]!= None or points_axial[1,1]!= None):
+            if points_axial[0,1]>points_axial[1,1]:
                 temp = points_axial[0,0]
                 points_axial[0,0]=points_axial[1,0]
                 points_axial[1,0]=temp
@@ -202,8 +166,8 @@ if __name__=="__main__":
             # print(['-']*30)
             # points_axial = draw_rect(sitk.GetArrayViewFromImage(CTRL_images[0])[selected_slice_axial,:,:])
             extract = sitk.RegionOfInterestImageFilter()
-            extract.SetRegionOfInterest([int(points_coronal[0,1]),int(points_axial[0,1]),int(points_coronal[0,0]),
-                                         int(points_coronal[1,1]-points_coronal[0,1]),int(points_axial[1,1]-points_axial[0,1]),int(points_coronal[1,0]-points_coronal[0,0])])
+            extract.SetRegionOfInterest([int(points_coronal[0,1]),int(points_axial[0,0]),int(points_coronal[0,0]),
+                                         int(points_coronal[1,1]-points_coronal[0,1]),int(points_axial[1,0]-points_axial[0,0]),int(points_coronal[1,0]-points_coronal[0,0])])
             CTRL_cropped = []
             AD_cropped = [] 
             for x in CTRL_images:
@@ -297,6 +261,7 @@ if __name__=="__main__":
         m = np.sum(np.array(masks), axis = 0)#This is a "histogram images" of occourrences of brain segmentation
         m_up = np.where(m>0.001*len(CTRL_masks), m, 0) #No filter applied but it will return a ones array becouse the images are never zero
         mean_mask = np.where(m_up > 0, 1, 0) #creating mean mask of zeros and ones
+    plt.imshow(mean_mask[:,50,:])
 #%%Select only the elements of the mask in all the images arrays
     CTRL_vectors = []
     AD_vectors = []
@@ -305,69 +270,65 @@ if __name__=="__main__":
             CTRL_vectors.append(sitk.GetArrayFromImage(x)[mean_mask == 1].flatten())
         for x in AD_images:
             AD_vectors.append(sitk.GetArrayFromImage(x)[mean_mask == 1].flatten())
+    #Right now is witnout any kind of mask (raw data if "No" is selected)
     if(Y_N == "No"):
         for x in CTRL_images:
-            CTRL_vectors.append(sitk.GetArrayFromImage(x)[mean_mask == 1].flatten())
+            CTRL_vectors.append(sitk.GetArrayFromImage(x).flatten())
         for x in AD_images:
-            AD_vectors.append(sitk.GetArrayFromImage(x)[mean_mask == 1].flatten())
+            AD_vectors.append(sitk.GetArrayFromImage(x).flatten())
 #%% Try edge detection for mask
     #FIRST of ALL: it takes directly the image
-    import multiprocessing
-    CTRL_GM = []
-    AD_GM = []
-    def Filter_GM(x):
-        threshold_filters= sitk.LaplacianSharpeningImageFilter()#first selection of the zones
+    # import multiprocessing
+    # CTRL_GM = []
+    # AD_GM = []
+    # def Filter_GM(x):
+    #     threshold_filters= sitk.LaplacianSharpeningImageFilter()#first selection of the zones
         
-        thresh_img = threshold_filters.Execute(x)
+    #     thresh_img = threshold_filters.Execute(x)
     
-        threshold_filters= sitk.UnsharpMaskImageFilter() #enhancement of the edges in order to set a more accurate threshold
-        thresh_img = threshold_filters.Execute(thresh_img)
-        #threshold_filters= sitk.YenThresholdImageFilter() #this is a good threshold too but it's a little blurry
-        threshold_filters= sitk.RenyiEntropyThresholdImageFilter() # best threshold i could find
-        threshold_filters.SetInsideValue(0)#
-        threshold_filters.SetOutsideValue(1)#binomial I/O
-        thresh_img = threshold_filters.Execute(thresh_img)
-        data = sitk.GetArrayFromImage(thresh_img)
-        #Taking GM elements
-        filtered_img = np.where(data == 1, sitk.GetArrayViewFromImage(x), data)
-        return filtered_img
-    def CTRL_filtration(x):
-        global CTRL_GM
-        filtered_img = Filter_GM(x)
-        filtered_img = filtered_img[:,:,:]#select slices to append
-        return filtered_img.flatten()
-    def AD_filtration(x):
-        global AD_GM
-        filtered_img = Filter_GM(x)
-        filtered_img = filtered_img[:,:,:]#select slices to append
-        AD_GM.append(filtered_img.flatten())    
-    num_cores = multiprocessing.cpu_count()
-    print('N° Cores = {}'.format(num_cores))
-    start = perf_counter()
-    pool = multiprocessing.Pool(processes = num_cores)
+    #     threshold_filters= sitk.UnsharpMaskImageFilter() #enhancement of the edges in order to set a more accurate threshold
+    #     thresh_img = threshold_filters.Execute(thresh_img)
+    #     #threshold_filters= sitk.YenThresholdImageFilter() #this is a good threshold too but it's a little blurry
+    #     threshold_filters= sitk.RenyiEntropyThresholdImageFilter() # best threshold i could find
+    #     threshold_filters.SetInsideValue(0)#
+    #     threshold_filters.SetOutsideValue(1)#binomial I/O
+    #     thresh_img = threshold_filters.Execute(thresh_img)
+    #     data = sitk.GetArrayFromImage(thresh_img)
+    #     #Taking GM elements
+    #     filtered_img = np.where(data == 1, sitk.GetArrayViewFromImage(x), data)
+    #     return filtered_img
+    # def CTRL_filtration(x):
+    #     global CTRL_GM
+    #     filtered_img = Filter_GM(x)
+    #     filtered_img = filtered_img[:,:,:]#select slices to append
+    #     return filtered_img.flatten()
+    # def AD_filtration(x):
+    #     global AD_GM
+    #     filtered_img = Filter_GM(x)
+    #     filtered_img = filtered_img[:,:,:]#select slices to append
+    #     AD_GM.append(filtered_img.flatten())    
+    # num_cores = multiprocessing.cpu_count()
+    # print('N° Cores = {}'.format(num_cores))
+    # start = perf_counter()
+    # pool = multiprocessing.Pool(processes = num_cores)
     
-    resoults = pool.map(CTRL_filtration, CTRL_images)
-    pool.close() 
+    # resoults = pool.map(CTRL_filtration, CTRL_images)
+    # pool.close() 
     
-    # for x in CTRL_images:
-    #     CTRL_filtration(x)
-    # for x in AD_images:
-    #     AD_filtration(x)
-    print("Time: {}".format(perf_counter()-start))#Print performance time
+    # # for x in CTRL_images:
+    # #     CTRL_filtration(x)
+    # # for x in AD_images:
+    # #     AD_filtration(x)
+    # print("Time: {}".format(perf_counter()-start))#Print performance time
 #%% Making labels
     dataset = []
     zeros = np.array([-1]*len(CTRL_images))
     ones = np.asarray([1]*len(AD_images))
-    # dataset.extend(CTRL_GM)
-    # dataset.extend(AD_GM)
     dataset.extend(CTRL_vectors)
     dataset.extend(AD_vectors)
     dataset = np.array(dataset)
     labels = np.append(zeros, ones, axis = 0).tolist()
-    # df = pd.DataFrame()
-    # df['Data'] = dataset
-    # df['Labels'] = labels
-    #datase, labels = dataset[..., np.newaxis], labels[..., np.newaxis]
+
 #%% Now try a SVM-RFE
     from sklearn.model_selection import train_test_split
     from sklearn.preprocessing import StandardScaler
@@ -375,9 +336,8 @@ if __name__=="__main__":
     from sklearn.model_selection import StratifiedKFold
     from sklearn.metrics import roc_curve, auc
     from numpy import interp
-    from sklearn.preprocessing import RobustScaler, StandardScaler
     from sklearn.pipeline import Pipeline
-    #%%
+    #%%One single SVC
     train_set_data, test_set_data, train_set_lab, test_set_lab = train_test_split(dataset, labels, test_size = 0.3,random_state=42)
     start = perf_counter()
     classifier = SVC(kernel='linear', probability=True)
@@ -386,23 +346,89 @@ if __name__=="__main__":
     coef_vect = classifier.coef_ #vettore dei pesi
     #classifier = classifier.fit(train_set_data, train_set_lab, np.abs(coef_vect))
     #coef_vect = classifier.coef_ #vettore dei pesi
-    #%%Resume of above
+     #%%Resume of above
     print(classifier)
     print(classifier.score(test_set_data, test_set_lab))
-#%% # create pipeline
+    #%% # create SVC than extract more relevant feature with selector (weigth^2)
         #Try RFE
-    from sklearn.feature_selection import RFE
+    from sklearn.feature_selection import RFE, RFECV
     from sklearn.model_selection import cross_val_score
     from sklearn.model_selection import RepeatedStratifiedKFold
 
-    X, y = dataset, np.array(labels)
+    train_set_data, test_set_data, train_set_lab, test_set_lab = train_test_split(dataset, labels, test_size = 0.3,random_state=42)
+    X, y = train_set_data, train_set_lab
     n_splits = 20#secondo articolo(mi sembra) 
-    rfe = RFE(estimator=SVC(kernel='linear', probability=True), n_features_to_select=6000, step=0.5)
+    classifier = SVC(kernel='linear', probability=True)
+    start = perf_counter()
+    rfe = RFE(estimator=classifier, n_features_to_select=6000, step=0.5)#Classic RFE
+    #rfe = RFECV(estimator=classifier, min_features_to_select=6000, step=0.5, n_jobs=-1)#Find BEST feature with cross validation, it can be paralelized so it's a little bit faster but the cross validation takes time
     FIT = rfe.fit(X,y)
-    #%%
+    print("Time: {}".format(perf_counter()-start))#Print performance time
     fig, ax = plt.subplots()
-    ax.imshow(sitk.GetArrayViewFromImage(CTRL_images[0])[:,np.round(CTRL_images[0].shape[0]/2),:], cmap = 'Greys_r')
-    ax.imshow(FIT.support_.reshape(CTRL_images[0].shape[0],CTRL_images[0].shape[1],CTRL_images[0].shape[2]).astype(int)[:,np.round(CTRL_images[0].shape[0]/2),:], alpha = 0.6, cmap='RdGy_r')
+    arr = sitk.GetArrayViewFromImage(CTRL_images[0])
+    ax.imshow(arr[:,int(np.round(arr.shape[1]/2)),:], cmap = 'Greys_r')
+    ax.imshow(FIT.support_.reshape(arr.shape[0], arr.shape[1], arr.shape[2]).astype(int)[:,int(np.round(arr.shape[1]/2)),:], alpha = 0.6, cmap='RdGy_r')
+    #Base performance with actual dataset
+    classifier = classifier.fit(X, y)
+    print(classifier.score(test_set_data, test_set_lab))
+    #rigth now it eliminate the old X with the newer and reducted_X
+    
+    start = perf_counter()
+    red_X = []
+    for x in range(X.shape[0]):
+        red_X.append(X[x,FIT.support_])
+    red_X = np.array(red_X)
+    #Fit the svc with the most important voxels
+    classifier = classifier.fit(red_X, y)
+    
+    #The same selection need to be done with  the test_X
+    test_X = []
+    for x in range(test_set_data.shape[0]):
+        test_X.append(test_set_data[x,FIT.support_])
+    test_X = np.array(test_X)
+    #Resume
+    print("Time: {}".format(perf_counter()-start))
+    print(classifier.score(test_X, test_set_lab))
+
+    #%%RFE: Home made, every iteration eliminate the lowest n feature in weigth vector and fit again the model until the target size is reached
+    train_set_data, test_set_data, train_set_lab, test_set_lab = train_test_split(dataset, labels, test_size = 0.3,random_state=42)
+    data = train_set_data
+    t_d, t_t = test_set_data, test_set_lab
+    start = perf_counter()
+    feature_rank = []
+    v_used = [i for i in range(dataset.shape[1])]
+    idx = []
+    target_size = 6000
+    while data.shape[1]>target_size:
+        classifier = classifier.fit(data, train_set_lab)
+        coef_vect = np.abs(classifier.coef_)
+        coef_vect = coef_vect.tolist()[0]
+        elim = np.sort(coef_vect)[0:int(np.round(data.shape[1]/2))]
+        indx = []
+        for i in elim:
+            indx.append(coef_vect.index(i))
+        data = np.delete(data,indx,1)
+        idx.append(indx)
+        print("Time: {}".format(perf_counter()-start))#Print performance time
+    classifier = classifier.fit(data, train_set_lab)
+    coef_vect = classifier.coef_ 
+    print(classifier)
+    for i in idx:
+        t_d = np.delete(t_d,i,1)
+    print(classifier.score(t_d, t_t))
+    ##mask of best pixel
+    rfe_voxels = np.where(dataset[0]== np.any(data[0]), 1,0)
+    plt.imshow(np.reshape(rfe_voxels,sitk.GetArrayFromImage(CTRL_images[0]).shape)[:,50,:])
+    #%%Its good but cannot be implemen
+    from sklearn.svm import LinearSVC
+    from sklearn.feature_selection import SelectFromModel
+    data = dataset
+    lsvc = LinearSVC(C=1, penalty="l1", dual=True).fit(train_set_data, train_set_lab)
+    model = SelectFromModel(lsvc, prefit=True)
+    X_new = model.transform(train_set_data)
+    X_new.shape
+
+
     #%%
     rfe = RFE(estimator=SVC(kernel='linear', probability=True), n_features_to_select=6000, step=0.5)
     model = SVC(kernel='linear', probability=True)
@@ -483,9 +509,3 @@ if __name__=="__main__":
     
     classifier = SVC(kernel='linear', probability=True)
     plot_cv_roc(X,y, classifier, n_splits, scaler=None)
-    #%%Resume of above
-    print(classifier)
-    print(classifier.score(StandardScaler().fit_transform(test_set_data), test_set_lab))
-
-    
-    
