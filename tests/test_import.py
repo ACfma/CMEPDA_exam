@@ -1,6 +1,6 @@
 import unittest
 import os
-import glob
+#import glob
 
 import SimpleITK as sitk
 
@@ -8,9 +8,9 @@ from Neuroimages_GM_AD_Detection.Brain_Sequence import Brain_Sequence
 
 class TestCore(unittest.TestCase):
     '''Testing the import function'''
-    #PATH = os.path.abspath('')
-    FILE = '/home/travis/build/ACfma/CMEPDA_exam/tests/smwc1CTRL-1.nii'
-    #FILE = PATH+FILE
+    PATH = os.path.abspath('')
+    FILE = '/tests/smwc1CTRL-1.nii'
+    FILE = PATH+FILE
     #print(glob.glob(os.path.normpath(FILE)))
     image = sitk.ReadImage(FILE, imageIO = "NiftiImageIO")
 
