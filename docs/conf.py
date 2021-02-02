@@ -12,12 +12,14 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../CMEPDA-exam'))
-
+package_name = 'CMEPDA_exam'
+package_root = os.path.abspath('..')
+sys.path.insert(0, package_root)
+sys.path.insert(0, os.path.join(package_root, package_name))
 
 # -- Project information -----------------------------------------------------
 
-project = 'CMEPDA-exam'
+project = 'CMEPDA_exam'
 copyright = '2021, Andrea Carli, Manuela Imbriani, Martina Moglioni'
 author = 'Andrea Carli, Manuela Imbriani, Martina Moglioni'
 
