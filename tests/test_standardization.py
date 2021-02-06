@@ -15,24 +15,19 @@ from sklearn.preprocessing import StandardScaler
 import SimpleITK as sitk
 import glob
 
-dataset_path_CTRL = ''
 
-file_CTRL = '/*CTRL*.nii' 
+PATH = os.path.abspath('/home/hp/Scrivania/cmep/git/CMEPDA_exam/tests/')
+FILE = '/smwc1CTRL-1.nii'
+FILE = PATH+FILE
 
-images_CTRL = [] 
-data_CTRL = []
-
-for image in glob.glob(os.path.normpath(file_CTRL), recursive=True):
-  images_CTRL.append(sitk.ReadImage(image, imageIO = "NiftiImageIO"))
-data_CTRL = [sitk.GetArrayViewFromImage(x) for x in images_CTRL]
-
-img = sitk.GetArrayFromImage(images_CTRL[][:, , :])
+img = sitk.ReadImage(FILE, imageIO = "NiftiImageIO")
+img_a = sitk.GetArrayFromImage(img[:, 40, :])
 
 import unittest
 class StandardTest(unittest.TestCase):
 
-  def test_st(self):
-    self.X = img
+ def test_st(self):
+    self.X = img_a
     self.stand_data = StandardScaler().fit_transform(self.X)
 
     var_s = np.var((self.X - self.X.mean())/self.X.std())
