@@ -25,21 +25,7 @@ def download_CTRL(x):
     global CTRL_images, CTRL_names
     CTRL_images.append(sitk.ReadImage(x, imageIO = "NiftiImageIO"))
     CTRL_names.append(x)
-def Brain_Sequence(type_of_scan,data):
-    imgs=[]
-    if type_of_scan == 'Axial':
-        for i, v in enumerate(data[:,0,0]):
-            im = plt.imshow(data[i,:,:], animated = True)
-            imgs.append([im])    
-    elif type_of_scan == 'Coronal':
-        for i, v in enumerate(data[0,:,0]):
-            im = plt.imshow(data[:,i,:], animated = True)
-            imgs.append([im])
-    elif type_of_scan == 'Sagittal':
-        for i, v in enumerate(data[0,0,:]):
-            im = plt.imshow(data[:,:,i], animated = True)
-            imgs.append([im])
-    return imgs
+
     
 if __name__=="__main__":
     file = os.path.abspath('')#Put the current path
@@ -74,110 +60,173 @@ if __name__=="__main__":
             thread1.join()
         if thread2 != None:
             thread2.join()
-
+    
+    # start = perf_counter()
+    # CTRL_A_par =[]
+    # AD_A_par = []
+    # import multiprocess as mp
+    # from functools import partial
+    # num_cores = mp.cpu_count()
+    # pool = mp.Pool(processes = num_cores)
+    # CTRL_results = pool.map_async(partial(sitk.ReadImage, imageIO = "NiftiImageIO"), CTRL_subj).get()
+    # AD_results = pool.map_async(partial(sitk.ReadImage, imageIO = "NiftiImageIO"), AD_subj).get()
+    
     print("Time: {}".format(perf_counter()-start))#Print performance time
 
       
             #%%Visualize your dataset like the cool kids do, so you'll be sure of what you will be working with
-    import matplotlib.animation as animation
-    # plt.show()
-    
-    type_of_scan = input('\nType your view animation (Axial/Coronal/Sagittal): ')
-    fig = plt.figure('Brain scan')
-    ani = animation.ArtistAnimation(fig, Brain_Sequence(type_of_scan, sitk.GetArrayViewFromImage(CTRL_images[0])), interval=50, blit=True, repeat_delay=100)
+    def brain_animation(Image, interval, delay):
+        '''
+        brain_animation will create a simple animation of the blain along the three main axes of a given nifti image
+        
+        Parameters
+        ----------
+        Image: 3-D ndarray
+            Selected nifti image.
+        
+        interval: int 
+            Time (in ms) between frames.
+        
+        delay: int 
+            Time of sleep (in ms) before repeating the animation.
+        
+        Returns
+        -------
+        Animation: Matplotlib.animation object 
+            Return Matplotlib.animation object along with the plotted animation when assigned (as specified in Matplotlib documentation).
+        ''' 
+        def Brain_Sequence(type_of_scan,data):
+            '''
+            Brain_Sequence returns a list of frames from a 3D ndarray
+            Parameters
+            ----------
+            type_of_scan: string
+                Specified view of the array: "Axial", "Coronal" or "Sagittal".
+            data:3D ndarray
+                Array to show
+                
+            Returns
+            -------
+                imgs: list of AxesImage
+                    List of frames to be animated.
+            '''
+            imgs=[]
+            if type_of_scan == 'Axial':
+                for i, v in enumerate(data[:,0,0]):
+                    im = plt.imshow(data[i,:,:], animated = True)
+                    imgs.append([im])    
+            elif type_of_scan == 'Coronal':
+                for i, v in enumerate(data[0,:,0]):
+                    im = plt.imshow(data[:,i,:], animated = True)
+                    imgs.append([im])
+            elif type_of_scan == 'Sagittal':
+                for i, v in enumerate(data[0,0,:]):
+                    im = plt.imshow(data[:,:,i], animated = True)
+                    imgs.append([im])
+            return imgs
+        from matplotlib.animation import ArtistAnimation
+        
+        type_of_scan = input('\nType your view animation (Axial/Coronal/Sagittal): ')
+        fig = plt.figure('Brain scan')
+        return  ArtistAnimation(fig, Brain_Sequence(type_of_scan, Image), interval=interval, blit=True, repeat_delay=delay)
+        
+    anim = brain_animation(sitk.GetArrayViewFromImage(CTRL_images[0]), 50, 100)
 #%% Try edge detection for mask
     #FIRST of ALL: it takes directly the image
-    import multiprocessing
-    CTRL_masks = []
-    AD_masks = []
-    def Filter_GM(x):
-        threshold_filters= sitk.RenyiEntropyThresholdImageFilter() # best threshold i could find
-        threshold_filters.SetInsideValue(0)#
-        threshold_filters.SetOutsideValue(1)#binomial I/O
-        thresh_img = threshold_filters.Execute(x)
-        mask = sitk.GetArrayFromImage(thresh_img)
-        #Taking GM elements
-        #filtered_img = np.where(data == 1, sitk.GetArrayViewFromImage(x), data)
-        return mask
-    def CTRL_filtration(x):
-        global CTRL_masks
-        masks_img = Filter_GM(x)
-        CTRL_masks.append(masks_img)
-    def AD_filtration(x):
-        global AD_masks
-        filtered_img = Filter_GM(x)
-        AD_masks.append(filtered_img)    
-
-    Y_N = ''
-    while Y_N != 'Yes' and Y_N != 'No':
-        Y_N = input("\nDo you want to apply a mean filter? \n-Type 'Yes' if you like to 'denoise' the images \n-Type 'No' for leave the images as they are.\n")
-    start = perf_counter()
-    if(Y_N == "Yes"):
-        for x in CTRL_images:
-            CTRL_filtration(x)
-        for x in AD_images:
-            AD_filtration(x)
-        masks = []
-        masks.extend(CTRL_masks)
-        masks.extend(AD_masks)
-        m = np.sum(np.array(masks), axis = 0)#This is a "histogram images" of occourrences of brain segmentation
-        m_up = np.where(m>0.03*len(CTRL_masks), m, 0) #Alzheimer desease is diagnosticated by a loss of GM in some areas
-        mean_mask = np.where(m_up > 0, 1, 0) #creating mean mask of zeros and ones
-        pos_vox = np.where(mean_mask == 1)
-    if(Y_N == "No"):
-        for x in CTRL_images:
-            CTRL_masks.append(np.where(sitk.GetArrayFromImage(x)>0.03,1,0))
-        for x in AD_images:
-            CTRL_masks.append(np.where(sitk.GetArrayFromImage(x)>0.03,1,0))
-        #This part is eliminable but i left it becouse the mask based on unfiltered images is the whole images becouse they are almost zero but never zero
-        masks = []
-        masks.extend(CTRL_masks)
-        masks.extend(AD_masks)
-        m = np.sum(np.array(masks), axis = 0)#This is a "histogram images" of occourrences of brain segmentation
-        m_up = np.where(m>0.3*len(CTRL_masks), m, 0) #No filter applied but it will return a ones array becouse the images are never zero
-        mean_mask = np.where(m_up > 0, 1, 0) #creating mean mask of zeros and ones
-        pos_vox = np.where(mean_mask == 1)
     
+    def mean_mask(images, ctrl):
+        '''
+        mean_mask creates a mean mask based on a threshold along all the images given as input in order to retain just the most important voxels selected in "Automatic" or "Manual" mode.
+        Parameters
+        ----------
+        images : list or nd array of SimpleITK.Image
+            List of images to be confronted in order to obtain a mean mask
+
+        Returns
+        -------
+        mean_mask : ndarray
+            Array of the same dimension of a single input image.
+
+        '''
+        
+        def Filter_GM(image):
+            '''
+            Filter_GM uses RenyiEntropyThresholdImageFilter in order to create an ndarray
+            Parameters
+            ----------
+            image : SimpleITK.Image
+                Image to apply the filter to.
+
+            Returns
+            -------
+            None.
+
+            '''
+            nonlocal masks
+            threshold_filters= sitk.RenyiEntropyThresholdImageFilter() # best threshold i could find
+            threshold_filters.SetInsideValue(0)#
+            threshold_filters.SetOutsideValue(1)#binomial I/O
+            thresh_img = threshold_filters.Execute(image)
+            mask = sitk.GetArrayFromImage(thresh_img)
+            masks.append(mask)
+        
+        A_M = ''
+        
+        while A_M != 'Automatic' and A_M != 'Manual':
+            A_M = input("\nWhat kind of filter do you want to apply? \n-Type 'Automatic' if you like to use an automatic filter \n-Type 'Manual' for select your threshold .\n")
+        
+        masks = []
+        
+        if(A_M == "Automatic"):
+            for x in images:
+                Filter_GM(x)
+
+        if(A_M == "Manual"):
+            thr = float(input("Insert your threshold:"))
+            for x in images:
+                masks.append(np.where(sitk.GetArrayFromImage(x)>thr,1,0))
+        
+        m = np.sum(np.array(masks), axis = 0)#This is a "histogram images" of occourrences of brain segmentation
+        m_up = np.where(m>0.03*ctrl, m, 0) #Alzheimer desease is diagnosticated by a loss of GM in some areas
+        mean_mask = np.where(m_up > 0, 1, 0) #creating mean mask of zeros and ones
+        
+        return np.array(mean_mask)
+    
+    start = perf_counter()    
+    images = CTRL_images.copy()
+    mean_mask = mean_mask(images, len(CTRL_images))
+    pos_vox = np.where(mean_mask == 1)
+    images.extend(AD_images.copy())
     print("Time: {}".format(perf_counter()-start))#Print performance time
 
-    plt.imshow(mean_mask[:,50,:])
 #%%Select only the elements of the mask in all the images arrays
-    CTRL_vectors = []
-    AD_vectors = []
-    if(Y_N == "Yes"):
-        for x in CTRL_images:
-            CTRL_vectors.append(sitk.GetArrayFromImage(x)[mean_mask == 1].flatten())
-        for x in AD_images:
-            AD_vectors.append(sitk.GetArrayFromImage(x)[mean_mask == 1].flatten())
-    #Right now is witnout any kind of mask (raw data if "No" is selected)
-    if(Y_N == "No"):
-        for x in CTRL_images:
-            CTRL_vectors.append(sitk.GetArrayFromImage(x)[mean_mask == 1].flatten())
-        for x in AD_images:
-            AD_vectors.append(sitk.GetArrayFromImage(x)[mean_mask == 1].flatten())
-    
+    def vectorize_subj(images, mask):
+        '''
+        vectorize_subj return a two dimentional array of given set of images in which every line correspond to an image and every row to a voxel selected by the mask used.
+        
+        Parameters
+        ----------
+        images: ndarray or list
+            List of images to use.
+        mask: ndarray
+            Mask to apply.
+        
+        Returns
+        -------
+        Return a two-dimentional ndarray with shape (n_images, n_selected_voxel)
+        '''
+        vectors = []
+        for x in images:
+            vectors.append(sitk.GetArrayFromImage(x)[mean_mask == 1].flatten())
+        
+        return np.array(vectors)
+    dataset = vectorize_subj(images, mean_mask)   
 #%% Making labels
-    dataset = []
     zeros = np.array([1]*len(CTRL_images))
     ones = np.asarray([-1]*len(AD_images))
-    dataset.extend(CTRL_vectors)
-    dataset.extend(AD_vectors)
-    dataset = np.array(dataset)
-    labels = np.append(zeros, ones, axis = 0).tolist()
-    names = np.append(np.array(CTRL_names), np.array(AD_names), axis = 0).tolist()
-#%%Flatten act just like where? Let's see if the feature selected with pos_vox order are the same of the vectors obtained with flatten
-    Sel_feat = []
-    Zero_M = np.zeros((121,145,121))
-    a = pos_vox[0]#From some tries the pos seems to be flatten with the same order of the used vectors
-    b = pos_vox[1]
-    c = pos_vox[2]
-    sub = 10#number of subject selected
-    arr = sitk.GetArrayViewFromImage(CTRL_images[sub])#Let's take the first one
-    for i,v in enumerate(a):
-        Sel_feat.append(arr[a[i],b[i],c[i]])
-    p = CTRL_vectors[sub]- np.array(Sel_feat)
-    if len(p[p>0])==0:
-        print("They're the same array")
+    labels = np.append(zeros, ones, axis = 0)
+    names = np.append(np.array(CTRL_names), np.array(AD_names), axis = 0)
+
 #%% Now try a SVM-RFE
 # create SVC than extract more relevant feature with selector (weigth^2)
     from sklearn.model_selection import train_test_split
@@ -189,26 +238,75 @@ if __name__=="__main__":
     from sklearn.model_selection import RepeatedStratifiedKFold, StratifiedKFold
     from sklearn.model_selection import cross_val_score
     from sklearn.svm import SVC
+    from sklearn.linear_model import SGDClassifier
     
     start = perf_counter()
-    classifier = SVC(kernel='linear', class_weight='balanced')
+    classifier = SGDClassifier(class_weight='balanced', n_jobs=-1)
     features = [300000, 200000, 100000, 50000, 20000, 10000]
     #Unholy line for creating a list of models
-    models = [Pipeline(steps=[('s',RFE(estimator=classifier, n_features_to_select=f, step=0.5)),('m',classifier)]) for f in features]
-    cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=2, random_state=42)
+    def reductor_RFE_PCA(X, Y, classifier, features, selector = None, n_splits=5, n_repeats=2, figure=True, info = False):
+        '''
+        reductor_RFE_PCA is an iterator over a given dataset that test an confront your estimator using roc_auc.
+        The function support feature reduction based on RFE or PCA.
+
+        Parameters
+        ----------
+        X : ndarray
+            Array of dimension (n_samples, n_features)
+        Y : ndarray
+            Array of dimension (n_samples,)
+        classifier : estimator
+            Estimator used as classificator
+        features : ndarray
+            Array containing the number of feature to select.
+        selector : selector, optional
+            Strategy to follow in order to select the most important features. The function supports only RFE and PCA. The default i None.
+        n_splits : int, optional
+            Split for kfold cross validation. The default is 5.
+        n_repeats : int, optional
+            Number of repetition kfold cross validation. The default is 2.
+        figure : boolean, optional
+            Whatever to print or not the boxplot of the resoults. The default is True.
+        info : boolean, optional
+            If True print the name and parameter of the last model tested at every iteration. The default is False.
+
+        Returns
+        -------
+        int, optional Figure
+            Returns the optimal number of feature for maximum roc_auc. If figure == True returns also the figure object of the boxplot.
+
+        '''
+        import logging
+        if selector == None:
+            models = classifier
+        elif selector == 'RFE':
+            step = float(input("Select step for RFE:"))
+            models = [Pipeline(steps=[('s',RFE(estimator=classifier, n_features_to_select=f, step=step)),('m',classifier)]) for f in features]
+        elif selector == 'PCA':
+            'INSERIRE PCA'
+        else:
+            logging.error("Your selector is neither 'RFE' or 'PCA'")
+        cv = RepeatedStratifiedKFold(n_splits=n_splits, n_repeats=n_repeats, random_state=42)
+        scores = []
+        for model in models:
+            scores.append(cross_val_score(model, X, Y, scoring='roc_auc', cv=cv, n_jobs=-1))
+            print('Done {}'.format(model))
+            
+        #Used median becouse the set are little for kfold so the distribution tails could be very large this can affect the mean if we use less elements
+        median_s = [np.median(score) for score in scores]
+        best_n = features[median_s.index(max(median_s))]
+        if figure ==True:
+            fig = plt.figure()
+            plt.boxplot(scores, sym = "b", labels = features, patch_artist=True)
+            plt.xlabel('Retained Feature')
+            plt.ylabel('AUC')
+            plt.title('AUC vs Retained Feature')
+            plt.show()
+            return best_n, fig
+        else:
+            return best_n
     X, y = train_set_data, train_set_lab
-    scores = []
-    for model in models:
-        scores.append(cross_val_score(model, X, y, scoring='roc_auc', cv=cv, n_jobs=-1))
-    plt.figure()
-    plt.boxplot(scores, sym = "b", labels = features, patch_artist=True)
-    plt.xlabel('Retained Feature')
-    plt.ylabel('AUC')
-    plt.title('AUC vs Retained Feature')
-    plt.show()
-    #Used median becouse the set are little for kfold so the distribution tails could be very large this can affect the mean if we use less elements
-    median_s = [np.median(score) for score in scores]
-    best_n = features[median_s.index(max(median_s))]
+    best_n, fig = reductor_RFE_PCA(X, y, classifier, features, selector ='RFE', figure = True)
     print("Time: {}".format(perf_counter()-start))
 #%% Try RFE    
     n_features = best_n
@@ -260,11 +358,10 @@ if __name__=="__main__":
     MMSE = []
     AD = []#This will be a mask for the scatter plot
     for j in test_names:
-        
         for i,v in enumerate(df['ID'].values): 
             if v + '.' in j:
                 MMSE.append(df['MMSE'].values[i])
-                if 'AD' in j:
+                if 'AD' in v:
                     AD.append(True)
                 else:
                     AD.append(False)
@@ -275,8 +372,8 @@ if __name__=="__main__":
     plt.figure()
     plt.scatter(MMSE[AD == True], distances[AD == True])
     plt.scatter(MMSE[AD == False], distances[AD == False])
-    plt.xlabel('Distance from the hyperplane')
-    plt.ylabel('MMSE')
+    plt.xlabel('MMSE')
+    plt.ylabel('Distance from the hyperplane')
     plt.title('Distribution of subject')
     plt.legend(['AD', 'CTRL'],loc="upper left")
     from scipy.stats import spearmanr
@@ -288,112 +385,117 @@ if __name__=="__main__":
     '''
     from sklearn.model_selection import RepeatedStratifiedKFold
     from sklearn.metrics import roc_curve, auc
-    from numpy import interp
-    n_splits = 5
-    X, Y = test_X, test_Y 
-    cv = RepeatedStratifiedKFold(n_splits=n_splits, n_repeats=2, random_state=42)
-    tprs = []
-    aucs = []
-    mean_fpr = np.linspace(0, 1, 100)
-    fig, ax = plt.subplots()
-    #Here I calcoulate a lot of roc and append it to the list of resoults
-    for train, test in cv.split(X, Y):
-        classifier.fit(X[train], Y[train])#Take train of the inputs and fit the model
-        probs = classifier.predict_proba(X[test])[:, 1]#I need only positive
-        fpr, tpr, _ = roc_curve(Y[test], probs)
-        interp_tpr = np.interp(mean_fpr, fpr, tpr)
-        interp_tpr[0] = 0.0
-        tprs.append(interp_tpr)
-        aucs.append(auc(fpr, tpr))
-    #Plotting the base option
-    ax.plot([0, 1], [0, 1], linestyle='--', lw=2, color='r',
-            label='Coin Flip', alpha=.8)
-    #Calculate mean and std
-    mean_tpr = np.mean(tprs, axis=0)
-    mean_tpr[-1] = 1.0
-    #mean_auc = auc(mean_fpr, mean_tpr) sklearn use this but i think it's the same as below
-    mean_auc = np.mean(aucs)
-    std_auc = np.std(aucs)
-    ax.plot(mean_fpr, mean_tpr, color='b',
-            label=r'Mean ROC (AUC = {:.2f} $\pm$ {:.2f})'.format(mean_auc, std_auc),
-            lw=2, alpha=.8)
-    std_tpr = np.std(tprs, axis=0)
-    tprs_upper = np.minimum(mean_tpr + std_tpr, 1)
-    tprs_lower = np.maximum(mean_tpr - std_tpr, 0)
-    ax.fill_between(mean_fpr, tprs_lower, tprs_upper, color='grey', alpha=.2,
-                    label=r'$\pm$ 1 std. dev.')
-    
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('Cross-Validation ROC of SVM')
-    plt.legend(loc="lower right")
-    plt.show()
-   
-    #%%#
-     
-    def plot_cv_roc(X, y, classifier, n_splits, scaler=None):
-        if scaler:
-            model = Pipeline([('scaler', scaler()),
-                    ('classifier', classifier)])
-        else:
-            model = classifier
 
-        try:
-            y = y.to_numpy()
-            X = X.to_numpy()
-        except AttributeError:
-            pass
-    
-        cv = StratifiedKFold(n_splits)
-    
-        tprs = [] #True positive rate
-        aucs = [] #Area under the ROC Curve
-        interp_fpr = np.linspace(0, 1, 100)
-        plt.figure()
-        i = 0
-        for train, test in cv.split(X, y):
-          probas_ = model.fit(X[train], y[train]).predict_proba(X[test])
-        # Compute ROC curve and area under the curve
-          fpr, tpr, thresholds = roc_curve(y[test], probas_[:, 1])
-    #      print(f"{fpr} - {tpr} - {thresholds}\n")
-          interp_tpr = interp(interp_fpr, fpr, tpr)
-          tprs.append(interp_tpr)
+    def roc_cv(X, Y, classifier, cv):
+        '''
+        roc_cv plots a mean roc curve with standard deviation along with mean auc given a classifier and a cv-splitter using Matplotlib
+        Parameters
+        ----------
+        X : ndarray or list
+            Data to be predicted (n_samples, n_features)
+        Y : ndarray or list
+            Labels (n_samples)
+        classifier : estimator
+            Estimator to use for the classification
+        cv : model selector
+            Selector used for cv splitting
+
+        Returns
+        -------
+        fig : Figure
+        ax : AxesSubplot
         
-          roc_auc = auc(fpr, tpr)
-          aucs.append(roc_auc)
-          plt.plot(fpr, tpr, lw=1, alpha=0.3,
-                  label=f'ROC fold {i} (AUC = {roc_auc:.2f})')
-          i += 1
-        plt.legend()
-        plt.xlabel('False Positive Rate (FPR)')
-        plt.ylabel('True Positive Rate (TPR)')
-        plt.show()
-    
-        plt.figure()
-        plt.plot([0, 1], [0, 1], linestyle='--', lw=2, color='r',
-              label='Chance', alpha=.8)
-    
+        Returns None if the classifer doesn't own a function that allows the implemenation of roc_curve
+        '''
+        tprs = []
+        aucs = []
+        mean_fpr = np.linspace(0, 1, 100)#Needed for roc curve
+        fig, ax = plt.subplots()
+        #Here I calcoulate a lot of roc and append it to the list of resoults
+        for train, test in cv.split(X, Y):
+
+            classifier.fit(X[train], Y[train])#Take train of the inputs and fit the model
+            try:
+                probs = classifier.predict_proba(X[test])#I need only positive
+            except:
+                try:
+                    probs = classifier.decision_function(X[test])#I need only positive
+                except:
+                    print("No discriminating function has been found for your model.")#I need only positive
+                    return None, None
+            fpr, tpr, _ = roc_curve(Y[test], probs)
+            interp_tpr = np.interp(mean_fpr, fpr, tpr)
+            interp_tpr[0] = 0.0
+            tprs.append(interp_tpr)
+            aucs.append(auc(fpr, tpr))
+        #Plotting the base option
+        ax.plot([0, 1], [0, 1], linestyle='--', lw=2, color='r',
+                label='Coin Flip', alpha=.8)
+        #Calculate mean and std
         mean_tpr = np.mean(tprs, axis=0)
         mean_tpr[-1] = 1.0
-        mean_auc = auc(interp_fpr, mean_tpr)
+        #mean_auc = auc(mean_fpr, mean_tpr) sklearn use this but i think it's the same as below
+        mean_auc = np.mean(aucs)
         std_auc = np.std(aucs)
-        plt.plot(interp_fpr, mean_tpr, color='b',
-                label=f'Mean ROC (AUC = {mean_auc:.2f} $\pm$ {std_auc:.2f})',
+        ax.plot(mean_fpr, mean_tpr, color='b',
+                label=r'Mean ROC (AUC = {:.2f} $\pm$ {:.2f})'.format(mean_auc, std_auc),
                 lw=2, alpha=.8)
-    
         std_tpr = np.std(tprs, axis=0)
         tprs_upper = np.minimum(mean_tpr + std_tpr, 1)
         tprs_lower = np.maximum(mean_tpr - std_tpr, 0)
-        plt.fill_between(interp_fpr, tprs_lower, tprs_upper, color='grey', alpha=.2,
+        ax.fill_between(mean_fpr, tprs_lower, tprs_upper, color='grey', alpha=.2,
                         label=r'$\pm$ 1 std. dev.')
-    
-        plt.xlim([-0.01, 1.01])
-        plt.ylim([-0.01, 1.01])
-        plt.xlabel('False Positive Rate',fontsize=18)
-        plt.ylabel('True Positive Rate',fontsize=18)
-        plt.title('Cross-Validation ROC of SVM',fontsize=18)
-        plt.legend(loc="lower right", prop={'size': 15})
+        
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('Cross-Validation ROC of SVM')
+        plt.legend(loc="lower right")
         plt.show()
+        return fig, ax
     
-    classifier = SVC(kernel='linear', probability=True)
-    plot_cv_roc(X,y, classifier, n_splits, scaler=None)
+    n_splits = 5
+    X, Y = test_X, test_Y 
+    cv = RepeatedStratifiedKFold(n_splits=n_splits, n_repeats=3, random_state=42)
+    classifier = SGDClassifier(class_weight='balanced', n_jobs=-1)    
+    fig, ax = roc_cv(X, Y, classifier, cv)
+    #%%just to see if the resize is doing well
+
+    def glass_brain(data, opacity, surface_count):
+        '''
+        glass_brain allows you to see the 3D array as a rendered volume.
+        Given the actual dataset, the matrix's indeces are permutated for an optimal rappresentation.
+        The image will be open with the user browser.
+        Parameters
+        ----------
+        data : ndarray
+            3D array of data to rapresent.
+        opacity : float
+            Sets the opacity of the surface. Opacity level over 0.25 could perform as well as expected (see Plotly documentation).
+        surface_count : int
+            Number of isosufaces to show.High number of surfaces could leed to a saturation of memory.
+
+        Returns
+        -------
+        None.
+
+        '''
+        import plotly.graph_objs as go
+        x1 = np.linspace(0, data.shape[0]-1, data.shape[0])  
+        y1 = np.linspace(0, data.shape[1]-1, data.shape[1])  
+        z1 = np.linspace(0, data.shape[2]-1, data.shape[2])
+        X, Y, Z = np.meshgrid(x1, y1, z1)#creating grid matrix
+        data_ein=np.einsum('ijk->jki', data)#here i swap the two directions "x" and "z" in order to rotate the image
+        fig = go.Figure(data=go.Volume(
+        x=X.flatten(),
+        y=Y.flatten(),
+        z=Z.flatten(),
+        value=data_ein.flatten(),
+        isomin=data.min(),#min value of isosurface ATTENTION: A bigger calcoulation time could bring the rendering to a runtime  error if we use the browser option
+        isomax=data.max(),
+        opacity=opacity, # needs to be small to see through all surfaces
+        surface_count=surface_count, # needs to be a large number for good volume rendering
+        caps=dict(x_show=False, y_show=False, z_show=False)
+        ))
+        fig.show(renderer="browser") 
+        
+    glass_brain(mean_mask, 0.1, 4)
