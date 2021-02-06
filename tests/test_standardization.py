@@ -16,7 +16,7 @@ import SimpleITK as sitk
 import glob
 
 
-PATH = os.path.abspath('/home/hp/Scrivania/cmep/git/CMEPDA_exam/tests/')
+PATH = os.path.abspath('')
 FILE = '/smwc1CTRL-1.nii'
 FILE = PATH+FILE
 
