@@ -9,7 +9,7 @@ Original file is located at
 
 import unittest
 import os
-import sklearn
+#import sklearn
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 import SimpleITK as sitk
