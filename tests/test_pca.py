@@ -17,7 +17,7 @@ import glob
 from sklearn.decomposition import PCA
 
 PATH = os.path.abspath('')
-FILE = '/smwc1CTRL-1.nii'
+FILE = '/tests/smwc1CTRL-1.nii'
 FILE = PATH+FILE
 
 img = sitk.ReadImage(FILE, imageIO = "NiftiImageIO")
