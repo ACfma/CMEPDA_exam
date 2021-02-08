@@ -6,14 +6,11 @@ Created on Tue Dec 22 11:59:07 2020
 """
 
 import os
-import glob
-import argparse
-
 import numpy as np
 from matplotlib import pyplot as plt
 import SimpleITK as sitk
-
-
+import argparse
+import glob
 
 
 from time import perf_counter
@@ -110,11 +107,11 @@ def rfe_pca_reductor(x_in, y_in, clf, features, c_in, selector = None,
         Split for kfold cross validation. The default is 5.
     n_repeats : int, optional
         Number of repetition kfold cross validation. The default is 2.
-    figure : boolean, optional
+    figure : bools, optional
         Whatever to print or not the boxplot of the resoults.
         The default is True.
     random_state : int, optional
-        Random state to give to all the function that necessitate it,
+        Random state to give to all the function that necessitate it,\
          implemeted for repetibility sake. Default it's 42.
 
     Returns
@@ -122,7 +119,7 @@ def rfe_pca_reductor(x_in, y_in, clf, features, c_in, selector = None,
     best_n : int
         Optimal number of feature
     best_c : float
-        Optimal C
+        Optimal C for the feature
     fig : matplotlib.Figure,optional
         If 'figure = True' returns the figure object of the boxplot.
     '''
@@ -168,7 +165,7 @@ def rfe_pca_reductor(x_in, y_in, clf, features, c_in, selector = None,
             model.set_params(m__C = search.best_params_[param])
         scores.append(cross_val_score(model, x_in, y_in, scoring='roc_auc',
                                       cv=cvs, n_jobs=-1))
-        best_cs.append(search.best_params_[param])
+        best_cs.append(c_in[search.best_index_])
         print('Done {}'.format(model))
 
     #Used median becouse less dependant from outlier
@@ -189,18 +186,27 @@ def rfe_pca_reductor(x_in, y_in, clf, features, c_in, selector = None,
 
 
 if __name__=="__main__":
+    # path = os.path.abspath('AD_CTRL')#Put the current path
+    # files = '*.nii'#find all nifti files with .nii in the name
+
+    # start = perf_counter()#Start the system timer
+
+    # subj = glob.glob(os.path.join(path, files))
+
+    # AD_images, AD_names, CTRL_images, CTRL_names = thread_pool(subj)
+
+    # print("Time: {}".format(perf_counter()-start))#Print performance time
     parser = argparse.ArgumentParser(
         description="Analyze your data using different kind of SVC with linear\
             kernel and reduction of features")
     parser.add_argument('-path', help='Path to your files', type=str)
     args = parser.parse_args()
     path = args.path
-    FILES = r"\*.nii" #find all nifti files with .nii in the name
-    path = path + FILES    
+    FILES = r"*.nii" #find all nifti files with .nii in the name  
 
     start = perf_counter()#Start the system timer
 
-    subj = glob.glob(os.path.normpath(path), recursive=True)
+    subj = glob.glob(os.path.join(path, FILES))
 
     AD_images, AD_names, CTRL_images, CTRL_names = thread_pool(subj)
 
@@ -216,6 +222,7 @@ if __name__=="__main__":
     start = perf_counter()    
     images = CTRL_images.copy()
     mean_mask = mean_mask(images, len(CTRL_images), overlap = 0.97)
+    '''Qui selezionare le slice di Martina'''
     pos_vox = np.where(mean_mask == 1)
     images.extend(AD_images.copy())
     print("Time: {}".format(perf_counter()-start))#Print performance time
@@ -228,12 +235,12 @@ if __name__=="__main__":
 # create SVC than extract more relevant feature with selector (weigth^2)
     train_set_data, test_set_data, train_set_lab, test_set_lab, train_names, test_names = train_test_split(dataset, labels, names, test_size = 0.3,random_state=42)
     X, y = train_set_data, train_set_lab
-    #%%Plotting possible resoults
+    #%% Trying Madness for unknown reasons
 
     start = perf_counter()
     classifier = SGDClassifier(class_weight='balanced', n_jobs=-1)
     features = [300000]
-    c = np.array([1,2])
+    c = np.array([0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10])
 
     best_n, cs, fig = rfe_pca_reductor(X, y, 'SGD', features, c, selector ='RFE', figure = True)
     print("Time: {}".format(perf_counter()-start))
