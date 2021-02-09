@@ -19,12 +19,13 @@ import logging
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.feature_selection import RFE
+from sklearn.decomposition import PCA
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.model_selection import cross_val_score
 from sklearn.svm import SVC
 from sklearn.linear_model import SGDClassifier
 from sklearn.model_selection import train_test_split
-
+from sklearn.preprocessing import StandardScaler
 
 from thread_pool import thread_pool
 from brain_animation import brain_animation
@@ -49,6 +50,7 @@ def vectorize_subj(images, mask):
     '''
     vectors = []
     for x in images:
+        '''Qui selezionare le slice di Martina'''
         vectors.append(sitk.GetArrayFromImage(x)[mean_mask == 1].flatten())
     
     return np.array(vectors)
@@ -133,14 +135,17 @@ def rfe_pca_reductor(x_in, y_in, clf, features, c_in, selector = None,
         logging.error("The selected classifier doesn't belong to the options.")
         return
     if selector == None:
-        models = classifier
+        models = [classifier]
     elif selector == 'RFE':
         step = float(input("Select step for RFE:"))
         models = [Pipeline(steps=[
             ('s',RFE(estimator=classifier, n_features_to_select=f, step=step)),
             ('m',classifier)]) for f in features]
     elif selector == 'PCA':
-        'INSERIRE PCA'
+        pca = PCA()
+        x_temp= pca.fit_transform(x_in)
+        x_in = x_temp
+        models = [Pipeline(steps=[('s',PCA(n_components=f)), ('m', classifier)]) for f in features]
     else:
         logging.error("Your selector is neither 'RFE' or 'PCA'")
     cvs = RepeatedStratifiedKFold(n_splits=n_splits, n_repeats=n_repeats,
@@ -186,29 +191,29 @@ def rfe_pca_reductor(x_in, y_in, clf, features, c_in, selector = None,
 
 
 if __name__=="__main__":
-    # path = os.path.abspath('AD_CTRL')#Put the current path
-    # files = '*.nii'#find all nifti files with .nii in the name
-
-    # start = perf_counter()#Start the system timer
-
-    # subj = glob.glob(os.path.join(path, files))
-
-    # AD_images, AD_names, CTRL_images, CTRL_names = thread_pool(subj)
-
-    # print("Time: {}".format(perf_counter()-start))#Print performance time
-    parser = argparse.ArgumentParser(
-        description="Analyze your data using different kind of SVC with linear\
-            kernel and reduction of features")
-    parser.add_argument('-path', help='Path to your files', type=str)
-    args = parser.parse_args()
-    path = args.path
-    FILES = r"*.nii" #find all nifti files with .nii in the name  
+    path = os.path.abspath('AD_CTRL')#Put the current path
+    files = '*.nii'#find all nifti files with .nii in the name
 
     start = perf_counter()#Start the system timer
 
-    subj = glob.glob(os.path.join(path, FILES))
+    subj = glob.glob(os.path.join(path, files))
 
     AD_images, AD_names, CTRL_images, CTRL_names = thread_pool(subj)
+
+    print("Time: {}".format(perf_counter()-start))#Print performance time
+    # parser = argparse.ArgumentParser(
+    #     description="Analyze your data using different kind of SVC with linear\
+    #         kernel and reduction of features")
+    # parser.add_argument('-path', help='Path to your files', type=str)
+    # args = parser.parse_args()
+    # path = args.path
+    # FILES = r"*.nii" #find all nifti files with .nii in the name  
+
+    # start = perf_counter()#Start the system timer
+
+    # subj = glob.glob(os.path.join(path, FILES))
+
+    # AD_images, AD_names, CTRL_images, CTRL_names = thread_pool(subj)
 
     print("Time: {}".format(perf_counter()-start))#Print performance time
 #%%Visualize your dataset like the cool kids do, so you'll be sure of what you will be working with
@@ -217,12 +222,9 @@ if __name__=="__main__":
 #%% Try edge detection for mask
     #FIRST of ALL: it takes directly the image
 
-
-    
     start = perf_counter()    
     images = CTRL_images.copy()
     mean_mask = mean_mask(images, len(CTRL_images), overlap = 0.97)
-    '''Qui selezionare le slice di Martina'''
     pos_vox = np.where(mean_mask == 1)
     images.extend(AD_images.copy())
     print("Time: {}".format(perf_counter()-start))#Print performance time
@@ -239,26 +241,59 @@ if __name__=="__main__":
 
     start = perf_counter()
     classifier = SGDClassifier(class_weight='balanced', n_jobs=-1)
-    features = [300000]
-    c = np.array([0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10])
-
-    best_n, cs, fig = rfe_pca_reductor(X, y, 'SGD', features, c, selector ='RFE', figure = True)
+    #s = int(input("insert feature until stop"))
+    #while (s!='stop'):
+    features = [150,100,30]
+    c = np.array([0.00001])
+    stand_X = StandardScaler().fit_transform(X)
+    selector = 'PCA'
+    best_n, cs, fig = rfe_pca_reductor(stand_X, y, 'SGD', features, c, selector ='PCA', figure = True)
     print("Time: {}".format(perf_counter()-start))
 #%% Try RFE    
-    n_features = best_n
+    n_features = 150
     X, y = train_set_data, train_set_lab
-    classifier = SGDClassifier(alpha = 1/(cs*X.shape[0]),class_weight='balanced', n_jobs=-1)
-
+    stand_X = StandardScaler().fit_transform(X)
+    classifier = SGDClassifier(alpha = 1/(1*X.shape[0]),class_weight='balanced', n_jobs=-1)
     start = perf_counter()
-    rfe = RFE(estimator=classifier, n_features_to_select=n_features, step=0.3)#Classic RFE
-    FIT = rfe.fit(X,y)
+    if selector == 'PCA':
+        pca = PCA(n_components=n_features)#Classic RFE
+        FIT = pca.fit(stand_X,y)
+    if selector == 'RFE':    
+        rfe = RFE(estimator=classifier, n_features_to_select=n_features, step=0.3)#Classic RFE
+        FIT = rfe.fit(X,y)
     print("Time: {}".format(perf_counter()-start))#Print performance time
-
+    
+    #RFE
+    support = FIT.support_
+    #PCA
+    diag = FIT.explained_variance_ratio_
+    indx = np.where(diag == np.max(diag))[0][0]
+    feat = abs( FIT.components_ )[indx,:]
+    sort_feat = np.sort(feat)[0:30000] 
+    support = np.in1d(feat,sort_feat)
+    #Create a matrix of zeros in witch i will change the element of the support to one
+    
+    
+    ####################################
+    Sel_feat = []
+    Zero_M = np.zeros((121,145,121))
+    # a = pos_vox[0][FIT.support_]
+    # b = pos_vox[1][FIT.support_]
+    # c = pos_vox[2][FIT.support_]
+    a = pos_vox[0][support]
+    b = pos_vox[1][support]
+    c = pos_vox[2][support]
+    for i,v in enumerate(a):
+        Zero_M[a[i],b[i],c[i]]=1
+    fig, ax = plt.subplots()
+    arr = sitk.GetArrayViewFromImage(CTRL_images[0])
+    ax.imshow(arr[:,int(np.round(arr.shape[1]/2-10)),:], cmap = 'Greys_r')
+    ax.imshow(Zero_M[:,int(np.round(arr.shape[1]/2-10)),:], alpha = 0.6, cmap='RdGy_r')
     #rigth now it eliminate the old X with the newer and reducted_X
     start = perf_counter()
     red_X = []
     for x in range(X.shape[0]):
-        red_X.append(X[x,FIT.support_])
+        red_X.append(X[x,support])
     red_X = np.array(red_X)
     #Fit the svc with the most important voxels
     classifier = classifier.fit(red_X, y)
@@ -266,27 +301,13 @@ if __name__=="__main__":
     #The same selection need to be done with  the test_X
     test_X = []
     for x in range(test_set_data.shape[0]):
-        test_X.append(test_set_data[x,FIT.support_])
+        test_X.append(test_set_data[x,support])
     test_X = np.array(test_X)
     test_Y = np.array(test_set_lab)
     #Resume
     print("Time: {}".format(perf_counter()-start))
-    
-
-    #Create a matrix of zeros in witch i will change the element of the support to one
-    Sel_feat = []
-    Zero_M = np.zeros((121,145,121))
-    a = pos_vox[0][FIT.support_]
-    b = pos_vox[1][FIT.support_]
-    c = pos_vox[2][FIT.support_]
-    for i,v in enumerate(a):
-        Zero_M[a[i],b[i],c[i]]=1
-    fig, ax = plt.subplots()
-    arr = sitk.GetArrayViewFromImage(CTRL_images[0])
-    ax.imshow(arr[int(np.round(arr.shape[1]/2-10)),:,:], cmap = 'Greys_r')
-    ax.imshow(Zero_M[int(np.round(arr.shape[1]/2-10)),:,:], alpha = 0.6, cmap='RdGy_r')
-
-
+    print(classifier.score(test_X,test_Y))
+    #glass_brain(mean_mask, 0.1, 4, True, Zero_M )
 #%%Distances from the Hyperplane. Due to the random nature of the import and split in traning set we need to search the correct elements foe spearman test
     import pandas as pd
     df = pd.read_table('AD_CTRL_metadata.csv')
