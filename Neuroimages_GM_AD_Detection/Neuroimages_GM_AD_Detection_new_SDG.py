@@ -250,97 +250,205 @@ if __name__=="__main__":
     best_n, cs, fig = rfe_pca_reductor(stand_X, y, 'SGD', features, c, selector ='PCA', figure = True)
     print("Time: {}".format(perf_counter()-start))
 #%% Try RFE    
-    n_features = 150
-    X, y = train_set_data, train_set_lab
-    stand_X = StandardScaler().fit_transform(X)
-    classifier = SGDClassifier(alpha = 1/(1*X.shape[0]),class_weight='balanced', n_jobs=-1)
-    start = perf_counter()
-    if selector == 'PCA':
-        pca = PCA(n_components=n_features)#Classic RFE
-        FIT = pca.fit(stand_X,y)
-    if selector == 'RFE':    
-        rfe = RFE(estimator=classifier, n_features_to_select=n_features, step=0.3)#Classic RFE
-        FIT = rfe.fit(X,y)
-    print("Time: {}".format(perf_counter()-start))#Print performance time
-    
-    #RFE
-    support = FIT.support_
-    #PCA
-    diag = FIT.explained_variance_ratio_
-    indx = np.where(diag == np.max(diag))[0][0]
-    feat = abs( FIT.components_ )[indx,:]
-    sort_feat = np.sort(feat)[0:30000] 
-    support = np.in1d(feat,sort_feat)
+    def FEATURE_from_PCA_RFE(X, Y, clf, features, selector = None, figure=True):
+        '''
+        
+        
+        Parameters
+        ----------
+        X : TYPE
+            DESCRIPTION.
+        Y : TYPE
+            DESCRIPTION.
+        clf : TYPE
+            DESCRIPTION.
+        features : TYPE
+            DESCRIPTION.
+        selector : TYPE, optional
+            DESCRIPTION. The default is None.
+        figure : TYPE, optional
+            DESCRIPTION. The default is True.
+        
+        Returns
+        -------
+        None.
+        
+        '''
+        train_set_data, test_set_data, train_set_lab, test_set_lab, train_names, test_names = train_test_split(dataset, labels, names, test_size = 0.4,random_state=42)
+        X, y = train_set_data, train_set_lab
+        stand_X = StandardScaler().fit_transform(X)
+        start = perf_counter()
+        #features=[150, 200]
+        if clf == 'SGD':
+              classifier = SGDClassifier(class_weight='balanced',
+                                         n_jobs=-1)
+        elif clf == 'SVC':
+              classifier = SVC(kernel='linear', class_weight='balanced')
+        else:
+              logging.error("The selected classifier doesn't belong to the options.")
+              return
+        stand_X = StandardScaler().fit_transform(X)
+        if selector == 'PCA':
+            pca = PCA(n_components=features, svd_solver = 'randomized')#Classic RFE
+            FIT = pca.fit(stand_X,y)
+            diag = FIT.explained_variance_ratio_
+            indx = np.where(diag == np.max(diag))[0][0]
+            feat = abs( FIT.components_ )[indx,:]
+            n_feat = int(input("Insert number of retained features:"))
+            sort_feat = np.sort(feat)[0:n_feat] 
+            support = np.in1d(feat,sort_feat)
+        elif selector == 'RFE':    
+            rfe = RFE(estimator=classifier, n_features_to_select=features, step=0.3)#Classic RFE
+            FIT = rfe.fit(X,y)
+            support = FIT.support_
+        
+        else:
+              logging.error("Your selector is neither 'RFE' or 'PCA'")
+              return
+        Zero_M = np.zeros((121,145,121))
+        a = pos_vox[0][support]
+        b = pos_vox[1][support]
+        c = pos_vox[2][support]
+        for i,v in enumerate(a):
+          Zero_M[a[i],b[i],c[i]]=1
+        #Print performance time
+        
+        return support, classifier, Zero_M
+    def new_data(X, y, test_set_data, test_set_lab, support, clf):
+        '''
+        
+
+        Parameters
+        ----------
+        X : TYPE
+            DESCRIPTION.
+        y : TYPE
+            DESCRIPTION.
+        test_set_data : TYPE
+            DESCRIPTION.
+        test_set_lab : TYPE
+            DESCRIPTION.
+        support : TYPE
+            DESCRIPTION.
+        clf : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        test_X : TYPE
+            DESCRIPTION.
+        test_Y : TYPE
+            DESCRIPTION.
+        fitted_classifier : TYPE
+            DESCRIPTION.
+
+        '''
+        if clf == 'SGD':
+              classifier = SGDClassifier(class_weight='balanced',
+                                         n_jobs=-1)
+        elif clf == 'SVC':
+              classifier = SVC(kernel='linear', class_weight='balanced')
+        else:
+              logging.error("The selected classifier doesn't belong to the options.")
+              return
+        start = perf_counter()
+        red_X = []
+        for x in range(X.shape[0]):
+            red_X.append(X[x,support])
+        red_X = np.array(red_X)
+        #Fit the svc with the most important voxels
+        fitted_classifier = classifier.fit(red_X, y)
+        
+        #The same selection need to be done with  the test_X
+        test_X = []
+        for x in range(test_set_data.shape[0]):
+            test_X.append(test_set_data[x,support])
+        test_X = np.array(test_X)
+        test_Y = np.array(test_set_lab)
+        #Resume
+        print("Time: {}".format(perf_counter()-start))
+        print(fitted_classifier.score(test_X,test_Y))
+        return test_X, test_Y, fitted_classifier
     #Create a matrix of zeros in witch i will change the element of the support to one
-    
-    
-    ####################################
-    Sel_feat = []
-    Zero_M = np.zeros((121,145,121))
-    # a = pos_vox[0][FIT.support_]
-    # b = pos_vox[1][FIT.support_]
-    # c = pos_vox[2][FIT.support_]
-    a = pos_vox[0][support]
-    b = pos_vox[1][support]
-    c = pos_vox[2][support]
-    for i,v in enumerate(a):
-        Zero_M[a[i],b[i],c[i]]=1
+    n_feat = 100000
+    support_pca, classifier_pca, Zero_M_pca = FEATURE_from_PCA_RFE(X, y, 'SVC', 150, 'PCA', figure=True )
+    test_x_pca, test_y_pca, fitted_classifier_pca = new_data(X, y, test_set_data, test_set_lab, support_pca, 'SVC')
     fig, ax = plt.subplots()
     arr = sitk.GetArrayViewFromImage(CTRL_images[0])
-    ax.imshow(arr[:,int(np.round(arr.shape[1]/2-10)),:], cmap = 'Greys_r')
-    ax.imshow(Zero_M[:,int(np.round(arr.shape[1]/2-10)),:], alpha = 0.6, cmap='RdGy_r')
+    ax.imshow(arr[:,arr.shape[1]//2,:], cmap = 'Greys_r')
+    ax.imshow(Zero_M_pca[:,arr.shape[1]//2,:], alpha = 0.6, cmap='RdGy_r')
     #rigth now it eliminate the old X with the newer and reducted_X
-    start = perf_counter()
-    red_X = []
-    for x in range(X.shape[0]):
-        red_X.append(X[x,support])
-    red_X = np.array(red_X)
-    #Fit the svc with the most important voxels
-    classifier = classifier.fit(red_X, y)
     
-    #The same selection need to be done with  the test_X
-    test_X = []
-    for x in range(test_set_data.shape[0]):
-        test_X.append(test_set_data[x,support])
-    test_X = np.array(test_X)
-    test_Y = np.array(test_set_lab)
-    #Resume
-    print("Time: {}".format(perf_counter()-start))
-    print(classifier.score(test_X,test_Y))
+    
+    support_rfe, classifier_rfe, Zero_M_rfe = FEATURE_from_PCA_RFE(X, y, 'SVC', n_feat, 'RFE', figure=True )
+    test_x_rfe, test_y_rfe, fitted_classifier_rfe = new_data(X, y, test_set_data, test_set_lab, support_rfe, 'SVC')
+    ax.imshow(Zero_M_rfe[:,arr.shape[1]//2,:], alpha = 0.4, cmap='gist_gray')
+    #rigth now it eliminate the old X with the newer and reducted_X
+    
     #glass_brain(mean_mask, 0.1, 4, True, Zero_M )
 #%%Distances from the Hyperplane. Due to the random nature of the import and split in traning set we need to search the correct elements foe spearman test
     import pandas as pd
     df = pd.read_table('AD_CTRL_metadata.csv')
-    MMSE = []
-    AD = []#This will be a mask for the scatter plot
-    for j in test_names:
+    def spearmanr_graph(df,test_X,test_names, fitted_classifier):
+        '''
         
-        for i,v in enumerate(df['ID'].values): 
-            if v + '.' in j:
-                MMSE.append(df['MMSE'].values[i])
-                if 'AD' in j:
-                    AD.append(True)
-                else:
-                    AD.append(False)
-    #Serve di capire come confrontare nomi nella tabella con quelli del vettore "names" splittato in modo da prendere MMSE e fare in confronto
-    AD = np.array(AD)
-    MMSE = np.array(MMSE)
-    distances = classifier.decision_function(test_X)/np.sqrt(np.sum(np.square(classifier.coef_)))  #https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html?highlight=svc#sklearn.svm.SVC.decision_function
-    plt.figure()
-    plt.scatter(MMSE[AD == True], distances[AD == True])
-    plt.scatter(MMSE[AD == False], distances[AD == False])
-    plt.xlabel('MMSE')
-    plt.ylabel('Distance from the hyperplane')
-    plt.title('Distribution of subject')
-    plt.legend(['AD', 'CTRL'],loc="upper left")
-    from scipy.stats import spearmanr
-    print(spearmanr(MMSE,distances))
 
+        Parameters
+        ----------
+        df : TYPE
+            DESCRIPTION.
+        test_X : TYPE
+            DESCRIPTION.
+        test_names : TYPE
+            DESCRIPTION.
+        fitted_classifier : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        '''
+        MMSE = []
+        AD = []#This will be a mask for the scatter plot
+        for j in test_names:
+            
+            for i,v in enumerate(df['ID'].values): 
+                if v + '.' in j:
+                    MMSE.append(df['MMSE'].values[i])
+                    if 'AD' in v:
+                        AD.append(True)
+                    else:
+                        AD.append(False)
+        #Serve di capire come confrontare nomi nella tabella con quelli del vettore "names" splittato in modo da prendere MMSE e fare in confronto
+        AD = np.array(AD)
+        MMSE = np.array(MMSE)
+        distances = fitted_classifier.decision_function(test_X)/np.sqrt(np.sum(np.square(fitted_classifier.coef_)))  #https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html?highlight=svc#sklearn.svm.SVC.decision_function
+        fig, ax = plt.subplots()
+        ax.scatter(MMSE[AD == True], distances[AD == True], cmap = 'b')
+        ax.scatter(MMSE[AD == False], distances[AD == False], cmap = 'o')
+        plt.xlabel('MMSE')
+        plt.ylabel('Distance from the hyperplane')
+        plt.title('Distribution of subject')
+        ax.legend(['AD', 'CTRL'],loc="upper left")
+        #plt.show()
+        from scipy.stats import spearmanr
+        rank = spearmanr(MMSE,distances)
+        print(rank)
+        return fig, spearmanr(MMSE,distances) 
+    fig_pca, rank_pca = spearmanr_graph(df,test_x_pca, test_names, fitted_classifier_pca)
+    fig_rfe, rank_rfe = spearmanr_graph(df,test_x_rfe, test_names, fitted_classifier_rfe)
+    plt.show()
 #%%#ROC-CV
     n_splits = 5
-    X, Y = test_X, test_Y 
+    X, Y = test_x_pca, test_y_pca 
     cv = RepeatedStratifiedKFold(n_splits=n_splits, n_repeats=3, random_state=42)
     classifier = SGDClassifier(class_weight='balanced', n_jobs=-1)    
+    fig, ax = roc_cv(X, Y, classifier, cv)
+    X, Y = test_x_rfe, test_y_rfe 
+    cv = RepeatedStratifiedKFold(n_splits=n_splits, n_repeats=3, random_state=42)
+    classifier = SGDClassifier(class_weight='balanced', n_jobs=-1)  
     fig, ax = roc_cv(X, Y, classifier, cv)
 
 #%%just to see if the resize is doing well
