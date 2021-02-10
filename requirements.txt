@@ -3,3 +3,4 @@ SimpleITK
 matplotlib
 sklearn
 seaborn
+plotly
