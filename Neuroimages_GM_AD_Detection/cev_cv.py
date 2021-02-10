@@ -23,7 +23,7 @@ def cev_cv(x, y):
 
     Returns
     -------
-    lineplot : Plot
+    fig
     '''
 
     sns.lineplot(x, y, label='cumulative explained variance')
@@ -38,4 +38,4 @@ def cev_cv(x, y):
     plt.title("Cumulative explained variance vs Number of components")
 
 
-cev_cv(np.arange(n_samples), cum_var_exp)
+fig = cev_cv(np.arange(n_samples), cum_var_exp)
