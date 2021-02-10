@@ -9,6 +9,7 @@ Original file is located at
 
 from matplotlib import pyplot as plt
 import seaborn as sns
+import numpy as np
 
 def cev_cv(x, y):
     '''
