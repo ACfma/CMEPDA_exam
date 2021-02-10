@@ -2,8 +2,8 @@
 """
 This module will show a simple 3D rappresentation of your data.
 Attention: the function will rotate the image with the permutation:
-    ijk->jki
-    The function WILL ALSO DISPLAY IT USING BROWSER.
+-ijk->jki
+The function WILL ALSO DISPLAY IT USING BROWSER.
 """
 import numpy as np
 import plotly.graph_objs as go
@@ -11,23 +11,23 @@ def glass_brain(data, opacity, surface_count, voxels, most_important = False):
     '''
     glass_brain allows you to see the 3D array as a rendered volume.
     Given the actual dataset, the matrix's indeces are permutated for\
-         an optimal rappresentation.
+    an optimal rappresentation.
     The image will be open with the user browser.
+
     Parameters
     ----------
     data : ndarray
         3D array of data to rapresent.
     opacity : float
         Sets the opacity of the surface. Opacity level over 0.25 could perform\
-             as well as expected (see Plotly documentation).
+         as well as expected (see Plotly documentation).
     surface_count : int
-        Number of isosufaces to show.High number of surfaces could leed to a\
+        Number of isosufaces to show. High number of surfaces could leed to a\
          saturation of memory.
 
     Returns
     -------
     None.
-
     '''
     x_shape = np.linspace(0, data.shape[0]-1, data.shape[0])
     y_shape = np.linspace(0, data.shape[1]-1, data.shape[1])

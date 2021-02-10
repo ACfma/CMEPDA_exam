@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 This program will test the ROC curve with std. deviation.
 """
@@ -10,6 +9,7 @@ def roc_cv(x_in, y_in, classifier, cvs):
     '''
     roc_cv plots a mean roc curve with standard deviation along with mean auc\
      given a classifier and a cv-splitter using matplotlib.
+
     Parameters
     ----------
     x_in : ndarray or list
@@ -24,10 +24,9 @@ def roc_cv(x_in, y_in, classifier, cvs):
     Returns
     -------
     fig : matplotlib.Figure
+        Figure object, None if the classifier desn't fit the function'
     axs : AxesSubplot
-
-    Returns None if the classifer doesn't own a function that allows the\
-     implemenation of roc_curve.
+        Axis object, None if the classifier desn't fit the function
     '''
     tprs = []
     aucs = []
