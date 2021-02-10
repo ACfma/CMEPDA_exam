@@ -31,6 +31,6 @@ def CumExplainedVariance(data):
     ex_var_ratio = pca.explained_variance_ratio_
     ex_var = pca.explained_variance_
     cumulative_variance_explained = np.cumsum(ex_var_ratio)
-    return cumulative_variance_explained
+    return cum_var_exp
 
 cum_var_exp = CumExplainedVariance()
