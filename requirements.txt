@@ -5,4 +5,3 @@ sklearn
 seaborn
 plotly
 scipy
-logging
