@@ -9,17 +9,17 @@ Original file is located at
 
 from matplotlib import pyplot as plt
 import seaborn as sns
-import numpy as np
 
-def cev_cv(x, y):
+def cev_cv(x_in, y_in):
     '''
-    cev_cv plots the cumulative explained variance with possible number of components to choose a right range of PCs.
+    cev_cv plots the cumulative explained variance with possible number of /
+    components to choose a right range of PCs.
 
     Parameters
     ----------
-    x : ndarray or list
+    x_in : ndarray or list
         Number of possible PCs (n_samples)
-    y : ndarray
+    y_in : ndarray
         Cumulative explained variance (n_samples)
 
     Returns
@@ -27,15 +27,15 @@ def cev_cv(x, y):
     fig
     '''
 
-    ax = sns.lineplot(x, y, label='cumulative explained variance')
+    ax_ = sns.lineplot(x_in, y_in, label='cumulative explained variance')
     plt.xlabel("Number of components")
     plt.ylabel("Cumulative explained variance (%)")
-    plt.axhline(y = 0.95, color='k', linestyle='--', label = '95% Explained Variance')
-    plt.axhline(y = 0.90, color='c', linestyle='--', label = '90% Explained Variance')
-    plt.axhline(y = 0.85, color='r', linestyle='--', label = '85% Explained Variance')
-    plt.axhline(y = 0.80, color='y', linestyle='--', label = '80% Explained Variance')
+    plt.axhline(y=0.95, color='k', linestyle='--', label='95% Explained Variance')
+    plt.axhline(y=0.90, color='c', linestyle='--', label='90% Explained Variance')
+    plt.axhline(y=0.85, color='r', linestyle='--', label='85% Explained Variance')
+    plt.axhline(y=0.80, color='y', linestyle='--', label='80% Explained Variance')
     plt.legend(loc='best')
     plt.legend(loc='best')
     plt.title("Cumulative explained variance vs Number of components")
     plt.show()
-    return ax
+    return ax_
