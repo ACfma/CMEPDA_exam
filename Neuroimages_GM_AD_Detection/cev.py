@@ -11,9 +11,10 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import numpy as np
 
-def CumExplainedVariance(data):
+def cum_explained_variance(data):
     '''
-    CumExplainedVariance return a 1D array that contain the cumulative explained variance of a dataset.
+    cum_explained_variance return a 1D array that contain the cumulative explained/
+    variance of a dataset.
 
     Parameters
     ----------
@@ -27,8 +28,8 @@ def CumExplainedVariance(data):
     '''
     standardized_data = StandardScaler().fit_transform(data)
     pca = PCA()
-    principalComponents = pca.fit_transform(standardized_data)
+    pca.fit_transform(standardized_data)
     ex_var_ratio = pca.explained_variance_ratio_
-    ex_var = pca.explained_variance_
-    cumulative_variance_explained = np.cumsum(ex_var_ratio)
+    #ex_var = pca.explained_variance_
+    cum_var_exp = np.cumsum(ex_var_ratio)
     return cum_var_exp

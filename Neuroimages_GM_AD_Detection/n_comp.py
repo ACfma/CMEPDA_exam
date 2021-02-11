@@ -9,32 +9,32 @@ Original file is located at
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-import numpy as np
+#import numpy as np
 
-percentage=[] #insert percentages found.
-features=[]
+PERCENTAGE=[] #insert percentages found.
+FEATURES=[]
 
 def n_comp(data, percentage):
-  '''
-  n_comp return the number of components respect to the percentage of cumulative explained variance.
+    '''
+    n_comp return the number of components respect to the percentage of cumulative explained variance.
 
-  Parameters
-  ----------
-  data : ndarray 
+    Parameters
+    ----------
+    data : ndarray
         Array obtained from all images.
-  percentage: float
+    percentage: float
         Percentage of cumulative explained variance.
-  
-  Returns
-  -------
-  Returns the number of PCs.
 
-  '''
-  standardized_data = StandardScaler().fit_transform(data)
-  pca = PCA(percentage)
-  principalComponents = pca.fit_transform(standardized_data)
-  c = pca.n_components_
-  return c
+    Returns
+    -------
+    Returns the number of PCs.
+
+    '''
+    standardized_data = StandardScaler().fit_transform(data)
+    pca = PCA(percentage)
+    #principal_components = pca.fit_transform(standardized_data)
+    c_n = pca.n_components_
+    return c_n
 
 for i in percentage:
   features.append(n_comp(dataset, i))
