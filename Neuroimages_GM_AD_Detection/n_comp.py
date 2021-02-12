@@ -7,16 +7,19 @@ Original file is located at
     https://colab.research.google.com/drive/1hTw86Yka0a1q-jc9qZnTpcbPvsTeV3dY
 """
 
-from sklearn.preprocessing import StandardScaler
+#from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-#import numpy as np
 
-PERCENTAGE=[] #insert percentages found.
-FEATURES=[]
+from Neuroimages_GM_AD_Detection.svm_with_pca_rfe import svm_with_pca_rfe
+from Neuroimages_GM_AD_Detection.vectorize_subj import vectorize_subj
+
+PERCENTAGE = [] #insert percentages found.
+FEATURES = []
 
 def n_comp(data, percentage):
     '''
-    n_comp return the number of components respect to the percentage of cumulative explained variance.
+    n_comp return the number of components respect to the percentage of cumulative/
+    explained variance.
 
     Parameters
     ----------
@@ -30,11 +33,11 @@ def n_comp(data, percentage):
     Returns the number of PCs.
 
     '''
-    standardized_data = StandardScaler().fit_transform(data)
+    #standardized_data = StandardScaler().fit_transform(data)
     pca = PCA(percentage)
     #principal_components = pca.fit_transform(standardized_data)
     c_n = pca.n_components_
     return c_n
 
-for i in percentage:
-  features.append(n_comp(dataset, i))
+for i in PERCENTAGE:
+    FEATURES.append(n_comp(DATASET, i))
