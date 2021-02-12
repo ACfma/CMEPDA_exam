@@ -26,6 +26,9 @@ from brain_animation import brain_animation
 from mean_mask import mean_mask
 from roc_cv import roc_cv
 #from Neuroimages_GM_AD_Detection.glass_brain import glass_brain
+from cev import cev
+from n_comp import n_comp
+
 
 def vectorize_subj(images_in, mask):
     '''
@@ -216,10 +219,10 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, pos_vox_r, shape_r, selector_r
     '''
     stand_x = StandardScaler().fit_transform(x_in)
     if clf == 'SGD':
-        classifier_r = SGDClassifier(class_weight='balanced', n_jobs=-1, verbose=1)
+        classifier_r = SGDClassifier(class_weight='balanced', n_jobs=-1)
 
     elif clf == 'SVC':
-        classifier_r = SVC(kernel='linear', class_weight='balanced', verbose=1)
+        classifier_r = SVC(kernel='linear', class_weight='balanced')
     else:
         logging.error("The selected classifier doesn't belong to the options.")
         return None, None, None
@@ -359,27 +362,27 @@ def spearmanr_graph(df_s, test_x, test_names_s, fitted_classifier):
     print(rank)
     return fig_s, rank
 if __name__ == "__main__":
-    '''PATH = os.path.abspath('AD_CTRL')#Put the current path
+    PATH = os.path.abspath('AD_CTRL_CTRL')#Put the current path
     FILES = '*.nii'#find all nifti files with .nii in the name
     START = perf_counter()#Start the system timer
     SUBJ = glob.glob(os.path.join(PATH, FILES))
     AD_IMAGES, AD_NAMES, CTRL_IMAGES, CTRL_NAMES = thread_pool(SUBJ)
-    print("Time: {}".format(perf_counter()-START))#Print performance time'''
-    parser = argparse.ArgumentParser(
-         description="Analyze your data using different kind of SVC with linear\
-             kernel and reduction of features")
-    parser.add_argument('-path', help='Path to your files', type=str)
-    args = parser.parse_args()
-    PATH = args.path
-    FILES = r"*.nii" #find all nifti files with .nii in the name
-
-    START = perf_counter()#Start the system timer
-
-    SUBJ = glob.glob(os.path.join(PATH, FILES))
-
-    AD_IMAGES, AD_NAMES, CTRL_IMAGES, CTRL_NAMES = thread_pool(SUBJ)
-
     print("Time: {}".format(perf_counter()-START))#Print performance time
+    # parser = argparse.ArgumentParser(
+    #      description="Analyze your data using different kind of SVC with linear\
+    #          kernel and reduction of features")
+    # parser.add_argument('-path', help='Path to your files', type=str)
+    # args = parser.parse_args()
+    # PATH = args.path
+    # FILES = r"*.nii" #find all nifti files with .nii in the name
+
+    # START = perf_counter()#Start the system timer
+
+    # SUBJ = glob.glob(os.path.join(PATH, FILES))
+
+    # AD_IMAGES, AD_NAMES, CTRL_IMAGES, CTRL_NAMES = thread_pool(SUBJ)
+
+    # print("Time: {}".format(perf_counter()-START))#Print performance time
 #%%Visualize your dataset like the cool kids do, so you'll be sure of what you will be working with
 
     ANIM = brain_animation(sitk.GetArrayViewFromImage(CTRL_IMAGES[0]), 50, 100)
@@ -401,21 +404,28 @@ if __name__ == "__main__":
 #%% Now try a SVM-RFE
 # create SVC than extract more relevant feature with selector (weigth^2)
     TRAIN_SET_DATA, TEST_SET_DATA, TRAIN_SET_LAB, TEST_SET_LAB, TRAIN_NAMES,\
-    TEST_NAMES = train_test_split(DATASET, LABELS, NAMES, test_size=0.3,
-                                  random_state=42)
+    TEST_NAMES = train_test_split(DATASET, LABELS, NAMES, test_size=0.3)
     X, Y = TRAIN_SET_DATA, TRAIN_SET_LAB
     #%% Trying Madness for unknown reasons
-
     CLASS = input("Select Classifier between 'SVC' or 'SGD':")
     FEATURES_PCA = []
     FEATURES_RFE = []
-    CONT = 0
-    NUM = input("Insert PCA feature n{} (ends with 'stop'):".format(CONT))
-    while(NUM!='stop'):
-        FEATURES_PCA.append(int(NUM))
-        CONT = CONT+1
-        NUM = input("Insert PCA components n{} (ends with 'stop'):".format(
-                                                                        CONT))
+    FIG = cev(X)
+    QUEST = input("Do you want to use the selected number of PCAs(Yes/No)?")
+    if QUEST == 'Yes':
+        PERC = [0.80, 0.85, 0.90, 0.95]
+        for item in PERC:
+            FEATURES_PCA.append(n_comp(X, item))
+    elif QUEST == 'No':
+        CONT = 0
+        NUM = input("Insert PCA feature n{} (ends with 'stop'):".format(CONT))
+        while(NUM!='stop'):
+            FEATURES_PCA.append(int(NUM))
+            CONT = CONT+1
+            NUM = input("Insert PCA components n{} (ends with 'stop'):".format(
+                                                                       CONT))
+    else:
+        logging.warning('Your selection was invalid')
     CONT = 0
     NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(
                                                                       CONT))
@@ -472,14 +482,14 @@ if __name__ == "__main__":
 #%%Distances from the Hyperplane. Due to the random nature of the import and
 #split in traning set we need to search the correct elements foe spearman test
     import pandas as pd
-    DF_ = pd.read_table(r'C:\Users\Andrea\Documents\GitHub\CMEPDA_exam\AD_CTRL_metadata.csv')
-    FIG_PCA, RANK_PCA = spearmanr_graph(DF_, TEST_X_PCA, TEST_NAMES, FITTED_CLASSIFIER_PCA)
-    FIG_RFE, RANK_RFE = spearmanr_graph(DF_, TEST_X_RFE, TEST_NAMES, FITTED_CLASSIFIER_RFE)
+    DFM = pd.read_table(r'C:\Users\Andrea\Documents\GitHub\CMEPDA_exam\AD_CTRL_metadata.csv')
+    FIG_PCA, RANK_PCA = spearmanr_graph(DFM, TEST_X_PCA, TEST_NAMES, FITTED_CLASSIFIER_PCA)
+    FIG_RFE, RANK_RFE = spearmanr_graph(DFM, TEST_X_RFE, TEST_NAMES, FITTED_CLASSIFIER_RFE)
 #%%#ROC-CV
     N_SPLITS = 5
     X, Y = TEST_X_PCA, TEST_Y_PCA
-    CV_ = RepeatedStratifiedKFold(n_splits=N_SPLITS, n_repeats=3, random_state=42)
-    FIG, AX_ = roc_cv(X, Y, CLASSIFIER_PCA, CV_)
+    CVS = RepeatedStratifiedKFold(n_splits=N_SPLITS, n_repeats=3, random_state=42)
+    FIG, AXS = roc_cv(X, Y, CLASSIFIER_PCA, CVS)
     X, Y = TEST_X_RFE, TEST_Y_RFE
-    CV_ = RepeatedStratifiedKFold(n_splits=N_SPLITS, n_repeats=3, random_state=42)
-    FIG, AX_ = roc_cv(X, Y, CLASSIFIER_RFE, CV_)
+    CVS = RepeatedStratifiedKFold(n_splits=N_SPLITS, n_repeats=3, random_state=42)
+    FIG, AXS = roc_cv(X, Y, CLASSIFIER_RFE, CVS)

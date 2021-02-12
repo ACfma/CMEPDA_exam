@@ -227,7 +227,7 @@ def rfe_pca_reductor(x_in, y_in, clf, features, pos_vox, shape, selector = None,
     '''
     stand_x = StandardScaler().fit_transform(x_in)
     if clf == 'SGD':
-          classifier = SGDClassifier(class_weight='balanced',
+          classifier = SGDClassifier(class_weight='balanced', alpha = 0.00000001,
                                      n_jobs=-1, verbose=1)
     elif clf == 'SVC':
           classifier = SVC(kernel='linear', class_weight='balanced', verbose=1)
@@ -293,10 +293,10 @@ def new_data(x_in, y_in, test_set_data, test_set_lab, support, clf):
 
     '''
     if clf == 'SGD':
-          classifier = SGDClassifier(class_weight='balanced',
-                                     n_jobs=-1)
+          classifier = SGDClassifier(class_weight='balanced', random_state=42,
+                                     n_jobs=-1, verbose=1)
     elif clf == 'SVC':
-          classifier = SVC(kernel='linear', class_weight='balanced')
+          classifier = SVC(kernel='linear', class_weight='balanced', verbose=1)
     else:
           logging.error("The selected classifier doesn't belong to the options.")
           return
@@ -401,8 +401,8 @@ if __name__=="__main__":
 
     start = perf_counter()    
     images = CTRL_images.copy()
-    mean_mask = mean_mask(images, len(CTRL_images), overlap = 0.97)
-    pos_vox = np.where(mean_mask == 1)
+    mean_mask_m = mean_mask(images, len(CTRL_images), overlap = 0.97)
+    pos_vox = np.where(mean_mask_m == 1)
     images.extend(AD_images.copy())
     print("Time: {}".format(perf_counter()-start))#Print performance time
 
@@ -434,14 +434,14 @@ if __name__=="__main__":
     support_pca, classifier_pca, Zero_M_pca = rfe_pca_reductor(X, y, 'SVC', 150, pos_vox, shape, 'PCA', figure=True )
     test_x_pca, test_y_pca, fitted_classifier_pca = new_data(X, y, test_set_data, test_set_lab, support_pca, 'SVC')
     fig, ax = plt.subplots()
-    arr = mean_mask
+    arr = mean_mask_m
     ax.imshow(arr[arr.shape[1]//2,:,:], cmap = 'Greys_r')
     ax.imshow(Zero_M_pca[arr.shape[1]//2,:,:], alpha = 0.6, cmap='RdGy_r')
     #rigth now it eliminate the old X with the newer and reducted_X
     
     
-    support_rfe, classifier_rfe, Zero_M_rfe = rfe_pca_reductor(X, y, 'SVC', n_feat, pos_vox, shape,'RFE', figure=True )
-    test_x_rfe, test_y_rfe, fitted_classifier_rfe = new_data(X, y, test_set_data, test_set_lab, support_rfe, 'SVC')
+    support_rfe, classifier_rfe, Zero_M_rfe = rfe_pca_reductor(X, y, 'SGD', n_feat, pos_vox, shape,'RFE', figure=True )
+    test_x_rfe, test_y_rfe, fitted_classifier_rfe = new_data(X, y, test_set_data, test_set_lab, support_rfe, 'SGD')
     ax.imshow(Zero_M_rfe[arr.shape[1]//2,:,:], alpha = 0.4, cmap='gist_gray')
     #rigth now it eliminate the old X with the newer and reducted_X
     

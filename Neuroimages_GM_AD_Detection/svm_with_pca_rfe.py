@@ -219,15 +219,15 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, pos_vox_r, shape_r, selector_r
     '''
     stand_x = StandardScaler().fit_transform(x_in)
     if clf == 'SGD':
-        classifier_r = SGDClassifier(class_weight='balanced', n_jobs=-1, verbose=1)
+        classifier_r = SGDClassifier(class_weight='balanced', n_jobs=-1, random_state=42)
 
     elif clf == 'SVC':
-        classifier_r = SVC(kernel='linear', class_weight='balanced', verbose=1)
+        classifier_r = SVC(kernel='linear', class_weight='balanced')
     else:
         logging.error("The selected classifier doesn't belong to the options.")
         return None, None, None
     if selector_r == 'PCA':
-        pca = PCA(n_components=features_r, svd_solver='randomized')#Classic RFE
+        pca = PCA(n_components=features_r, svd_solver='randomized', random_state=42)
         fit_p = pca.fit(stand_x, y_in)
         diag = fit_p.explained_variance_ratio_
         indx = np.where(diag == np.max(diag))[0][0]
@@ -237,7 +237,7 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, pos_vox_r, shape_r, selector_r
         support = np.in1d(feat, sort_feat)
     elif selector_r == 'RFE':
         step = float(input("Insert step for RFE:"))
-        rfe = RFE(estimator=classifier_r, n_features_to_select=features_r, step=step)#Classic RFE
+        rfe = RFE(estimator=classifier_r, n_features_to_select=features_r, step=step)
         fit_r = rfe.fit(x_in, y_in)
         support = fit_r.support_
 
@@ -282,7 +282,7 @@ def new_data(x_in, y_in, test_set_data, test_set_lab, support, clf):
         Fitted Sklearn classifier object.
     '''
     if clf == 'SGD':
-        classifier_n = SGDClassifier(class_weight='balanced', n_jobs=-1)
+        classifier_n = SGDClassifier(class_weight='balanced', n_jobs=-1, random_state=42)
     elif clf == 'SVC':
         classifier_n = SVC(kernel='linear', class_weight='balanced')
     else:
