@@ -302,7 +302,17 @@ def new_data(x_in, y_in, test_set_data, test_set_lab, support, clf):
     test_x = np.array(test_x)
     test_y = np.array(test_set_lab)
     #Resume
+<<<<<<< HEAD
     print(fitted_classifier.score(test_x, test_y))
+=======
+    scores = []
+    for train, test in RepeatedStratifiedKFold(n_splits=2,n_repeats=5,
+                                               random_state=42).split(
+                                                   test_x, test_y):
+        scores.append(fitted_classifier.score(test_x[test], test_y[test]))
+    scores = np.array(scores)
+    print('Accuracy = {} +/- {}'.format(scores.mean(), scores.std()))
+>>>>>>> 0396bd38d96b64dc22a56d46296831f86816d350
     return test_x, test_y, fitted_classifier
 
 
@@ -331,11 +341,18 @@ def spearmanr_graph(df_s, test_x, test_names_s, fitted_classifier):
     mmse = []
     ad_s = []#This will be a mask for the scatter plot
     for j in test_names_s:
+<<<<<<< HEAD
 
         for i, item in enumerate(df_s['ID'].values):
             if item + '.' in j:
                 mmse.append(df_s['mmse'].values[i])
                 if 'ad_s' in item:
+=======
+        for i, item in enumerate(df_s['ID'].values):
+            if item + '.' in j:
+                mmse.append(df_s['MMSE'].values[i])
+                if 'AD' in item:
+>>>>>>> 0396bd38d96b64dc22a56d46296831f86816d350
                     ad_s.append(True)
                 else:
                     ad_s.append(False)
@@ -385,6 +402,10 @@ if __name__ == "__main__":
 #%%Visualize your dataset like the cool kids do, so you'll be sure of what you will be working with
 
     ANIM = brain_animation(sitk.GetArrayViewFromImage(CTRL_IMAGES[0]), 50, 100)
+<<<<<<< HEAD
+=======
+    plt.show()
+>>>>>>> 0396bd38d96b64dc22a56d46296831f86816d350
 #%% Try edge detection for mask
     #FIRST of ALL: it takes directly the image
 
@@ -406,6 +427,7 @@ if __name__ == "__main__":
                                   random_state=42)
     X, Y = TRAIN_SET_DATA, TRAIN_SET_LAB
     #%% Trying Madness for unknown reasons
+<<<<<<< HEAD
 
     START = perf_counter()
     CLASSIFIER = SGDClassifier(class_weight='balanced', n_jobs=-1)
@@ -424,23 +446,81 @@ if __name__ == "__main__":
     N_FEAT = 100000
     SHAPE = (121, 145, 121)
     SUPPORT_PCA, CLASSIFIER_PCA, ZERO_M_PCA = rfe_pca_reductor(X, Y, 'SVC', 150,
+=======
+    
+    CLASS = input("Select Classifier between 'SVC' or 'SGD':")
+    FEATURES_PCA = []
+    FEATURES_RFE = []
+    CONT = 0
+    NUM = input("Insert PCA feature n{} (ends with 'stop'):".format(CONT))
+    while(NUM!='stop'):
+        FEATURES_PCA.append(int(NUM))
+        CONT = CONT+1
+        NUM = input("Insert PCA components n{} (ends with 'stop'):".format(
+                                                                        CONT))
+    CONT = 0
+    NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(
+                                                                      CONT))
+    while(NUM!='stop'):
+        FEATURES_RFE.append(int(NUM))
+        CONT = CONT+1
+        NUM = input("Insert PCA feature n{} (ends with 'stop'):".format(CONT))
+        
+    C = np.array([0.00001])
+    START = perf_counter()
+    STAND_X = StandardScaler().fit_transform(X)
+    SELECTOR = 'PCA'
+    BEST_N_PCA, CS_PCA, FIG_PCA = rfe_pca_boxplot(STAND_X, Y, CLASS,
+                                                  FEATURES_PCA, C,
+                                                  selector_s='PCA',
+                                                  figure=True)
+    print("Time: {}".format(perf_counter()-START))
+    START = perf_counter()
+    BEST_N_RFE, CS_RFE, FIG_RFE = rfe_pca_boxplot(STAND_X, Y, CLASS, 
+                                                  FEATURES_RFE, C,
+                                                  selector_s='RFE',
+                                                  figure=True)
+    print("Time : {}".format(perf_counter()-START))
+#%% Try RFE
+
+    #Create a matrix of zeros in witch i will change the element of the support to one
+    N_FEAT = int(input("Choose RFE retained features:"))
+    N_COMP = int(input("Choose PCA best number of components:"))
+    SHAPE = MEAN_MASK.shape
+    print("Fitting PCA...")
+    SUPPORT_PCA, CLASSIFIER_PCA, ZERO_M_PCA = rfe_pca_reductor(X, Y, CLASS, 
+                                                               N_COMP,
+>>>>>>> 0396bd38d96b64dc22a56d46296831f86816d350
                                                                POS_VOX, SHAPE,
                                                                'PCA')
     TEST_X_PCA, TEST_Y_PCA, FITTED_CLASSIFIER_PCA = new_data(X, Y, TEST_SET_DATA,
                                                              TEST_SET_LAB,
+<<<<<<< HEAD
                                                              SUPPORT_PCA, 'SVC')
+=======
+                                                             SUPPORT_PCA, CLASS)
+>>>>>>> 0396bd38d96b64dc22a56d46296831f86816d350
     FIG, AXS = plt.subplots()
 
     AXS.imshow(MEAN_MASK[SHAPE[0]//2, :, :], cmap='Greys_r')
     AXS.imshow(ZERO_M_PCA[SHAPE[0]//2, :, :], alpha=0.6, cmap='RdGy_r')
     #rigth now it eliminate the old X with the newer and reducted_X
+<<<<<<< HEAD
 
     SUPPORT_RFE, CLASSIFIER_RFE, ZERO_M_RFE = rfe_pca_reductor(X, Y, 'SVC',
+=======
+    print("Fitting RFE...")
+    SUPPORT_RFE, CLASSIFIER_RFE, ZERO_M_RFE = rfe_pca_reductor(X, Y, CLASS,
+>>>>>>> 0396bd38d96b64dc22a56d46296831f86816d350
                                                                N_FEAT, POS_VOX,
                                                                SHAPE, 'RFE')
     TEST_X_RFE, TEST_Y_RFE, FITTED_CLASSIFIER_RFE = new_data(X, Y, TEST_SET_DATA,
                                                              TEST_SET_LAB,
+<<<<<<< HEAD
                                                              SUPPORT_RFE, 'SVC')
+=======
+                                                             SUPPORT_RFE, CLASS)
+>>>>>>> 0396bd38d96b64dc22a56d46296831f86816d350
     AXS.imshow(ZERO_M_RFE[SHAPE[0]//2, :, :], alpha=0.4, cmap='gist_gray')
     #rigth now it eliminate the old X with the newer and reducted_X
 
@@ -448,20 +528,33 @@ if __name__ == "__main__":
 #%%Distances from the Hyperplane. Due to the random nature of the import and
 #split in traning set we need to search the correct elements foe spearman test
     import pandas as pd
+<<<<<<< HEAD
     DF_ = pd.read_table('AD_CTRL_metadata.csv')
     FIG_PCA, RANK_PCA = spearmanr_graph(DF_, TEST_X_PCA, TEST_NAMES, FITTED_CLASSIFIER_PCA)
     FIG_RFE, RANK_RFE = spearmanr_graph(DF_, TEST_X_RFE, TEST_NAMES, FITTED_CLASSIFIER_RFE)
     plt.show()
+=======
+    DF_ = pd.read_table(r'C:\Users\Andrea\Documents\GitHub\CMEPDA_exam\AD_CTRL_metadata.csv')
+    FIG_PCA, RANK_PCA = spearmanr_graph(DF_, TEST_X_PCA, TEST_NAMES, FITTED_CLASSIFIER_PCA)
+    FIG_RFE, RANK_RFE = spearmanr_graph(DF_, TEST_X_RFE, TEST_NAMES, FITTED_CLASSIFIER_RFE)
+>>>>>>> 0396bd38d96b64dc22a56d46296831f86816d350
 #%%#ROC-CV
     N_SPLITS = 5
     X, Y = TEST_X_PCA, TEST_Y_PCA
     CV_ = RepeatedStratifiedKFold(n_splits=N_SPLITS, n_repeats=3, random_state=42)
+<<<<<<< HEAD
     CLASSIFIER = SGDClassifier(class_weight='balanced', n_jobs=-1)
     FIG, AX_ = roc_cv(X, Y, CLASSIFIER, CV_)
     X, Y = TEST_X_RFE, TEST_Y_RFE
     CV_ = RepeatedStratifiedKFold(n_splits=N_SPLITS, n_repeats=3, random_state=42)
     CLASSIFIER = SGDClassifier(class_weight='balanced', n_jobs=-1)
     FIG, AX_ = roc_cv(X, Y, CLASSIFIER, CV_)
+=======
+    FIG, AX_ = roc_cv(X, Y, CLASSIFIER_PCA, CV_)
+    X, Y = TEST_X_RFE, TEST_Y_RFE
+    CV_ = RepeatedStratifiedKFold(n_splits=N_SPLITS, n_repeats=3, random_state=42)
+    FIG, AX_ = roc_cv(X, Y, CLASSIFIER_RFE, CV_)
+>>>>>>> 0396bd38d96b64dc22a56d46296831f86816d350
 
 #%%just to see if the resize is doing well
     #glass_brain(MEAN_MASK, 0.1, 4)
