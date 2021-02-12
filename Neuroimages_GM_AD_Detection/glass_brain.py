@@ -7,7 +7,7 @@ The function WILL ALSO DISPLAY IT USING BROWSER.
 """
 import numpy as np
 import plotly.graph_objs as go
-def glass_brain(data, opacity, surface_count, voxels, most_important = False):
+def glass_brain(data, opacity, surface_count):
     '''
     glass_brain allows you to see the 3D array as a rendered volume.
     Given the actual dataset, the matrix's indeces are permutated for\
@@ -47,10 +47,7 @@ def glass_brain(data, opacity, surface_count, voxels, most_important = False):
     caps=dict(x_show=False, y_show=False, z_show=False)
     ))
     fig.show(renderer="browser")
-    if most_important == True:
-        fig.add_scatter3d(np.einsum('ijk->jki', voxels),mode='markers',
-    marker=dict(
-        size=12,))
+
 if __name__ == "__main__":
     a = np.random.rand(10,20,10)
     glass_brain(a, 0.1, 4)
