@@ -2,6 +2,7 @@
 This module will import all nifti files from subdirectories and divide them by\
  name if a consistency condition is fullfilled.
 '''
+
 import logging
 import os
 import glob
@@ -14,9 +15,9 @@ def thread_pool(sub):
     '''
     tread_pool creates 4 lists contanining AD and CTRL paths and images as\
      long as the single files are:
-       - .nii;
-       - use the above nomenclature
-       - belong to a unique (or with a same name) folder.
+    - .nii;
+    - use the above nomenclature
+    - belong to a unique (or with a same name) folder.
     This function uses SimpleITK for extracting the images.
 
     Parameters
@@ -36,7 +37,6 @@ def thread_pool(sub):
     ctrl_path : list
         List of the paths (string format) to the images (in the same order as\
                                                           AD_images).
-
     '''
     ctrl_images = []
     ad_images = []
