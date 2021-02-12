@@ -26,7 +26,7 @@ from brain_animation import brain_animation
 from mean_mask import mean_mask
 from roc_cv import roc_cv
 #from Neuroimages_GM_AD_Detection.glass_brain import glass_brain
-from cev import cev
+from cev import cum_explained_variance
 from n_comp import n_comp
 
 
@@ -186,7 +186,7 @@ def rfe_pca_boxplot(x_in, y_in, clf, features_s, c_in, selector_s=None,
     else:
         return best_n_f, best_c, None
 
-def rfe_pca_reductor(x_in, y_in, clf, features_r, pos_vox_r, shape_r, selector_r=None):
+def rfe_pca_reductor(x_in, y_in, clf, features_r, selector_r=None):
     '''
     rfe_pca_reductor will create a support matrix for reproducing best\
     features found. \n
@@ -201,10 +201,6 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, pos_vox_r, shape_r, selector_r
         Selected classifier between 'SDG' and 'SVC'.
     features_r : int
         Number of selected features.
-    pos_vox_r : tuple
-        Coordinates of the selected voxel in images.
-    shape_r : tuple
-        Shape of the original image.
     selector_r : str, optional
         Selector of features choosen between 'PCA' or 'RFE'. The default is\
          None.
@@ -214,8 +210,6 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, pos_vox_r, shape_r, selector_r
         Mask of the best fitting features.
     classifier : classifier
         Selected classifier (as an object).
-    zero_m : ndarray
-        3D Mask of the best fitting features.
     '''
     stand_x = StandardScaler().fit_transform(x_in)
     if clf == 'SGD':
@@ -244,16 +238,10 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, pos_vox_r, shape_r, selector_r
     else:
         logging.error("Your selector is neither 'RFE' or 'PCA'")
         return None, None, None
-    zero_m = np.zeros(shape_r)
-    pos_1 = pos_vox_r[0][support]
-    pos_2 = pos_vox_r[1][support]
-    pos_3 = pos_vox_r[2][support]
-    for i, _ in enumerate(pos_1):
-        zero_m[pos_1[i], pos_2[i], pos_3[i]] = 1
     #Print performance time
 
-    return support, classifier_r, zero_m
-def new_data(x_in, y_in, test_set_data, test_set_lab, support, clf):
+    return support, classifier_r
+def new_data(x_in, y_in, test_set_data, test_set_lab, support, pos_vox_r, shape_r, clf):
     '''
     new_data allow the reduction of the initial features to the ensamble\
      defined by the support along with the score of the fitted classifier with\
@@ -270,6 +258,10 @@ def new_data(x_in, y_in, test_set_data, test_set_lab, support, clf):
         Test set of labels. Must be 2D array.
     support : ndarray
         1D array of selected features.
+    pos_vox_r : tuple
+        Coordinates of the selected voxel in images.
+    shape_r : tuple
+        Shape of the original image.
     clf : str
         Selected classifier between 'SVC' or 'SGD'.
     Returns
@@ -280,6 +272,8 @@ def new_data(x_in, y_in, test_set_data, test_set_lab, support, clf):
         Reduced test set of labels.
     fitted_classifier : classifier
         Fitted Sklearn classifier object.
+    zero_m : ndarray
+        3D Mask of the best fitting features.
     '''
     if clf == 'SGD':
         classifier_n = SGDClassifier(class_weight='balanced', n_jobs=-1)
@@ -294,7 +288,7 @@ def new_data(x_in, y_in, test_set_data, test_set_lab, support, clf):
     red_x = np.array(red_x)
     #Fit the svc with the most important voxels
     fitted_classifier = classifier_n.fit(red_x, y_in)
-
+    ranking = np.abs(fitted_classifier.coef_[0,:])
     #The same selection need to be done with  the test_X
     test_x = []
     for item in range(test_set_data.shape[0]):
@@ -309,7 +303,13 @@ def new_data(x_in, y_in, test_set_data, test_set_lab, support, clf):
         scores.append(fitted_classifier.score(test_x[test], test_y[test]))
     scores = np.array(scores)
     print('Accuracy = {} +/- {}'.format(scores.mean(), scores.std()))
-    return test_x, test_y, fitted_classifier
+    zero_m = np.zeros(shape_r)
+    pos_1 = pos_vox_r[0][support]
+    pos_2 = pos_vox_r[1][support]
+    pos_3 = pos_vox_r[2][support]
+    for i, _ in enumerate(pos_1):
+        zero_m[pos_1[i], pos_2[i], pos_3[i]] = ranking[i]
+    return test_x, test_y, fitted_classifier, zero_m
 
 
 def spearmanr_graph(df_s, test_x, test_names_s, fitted_classifier):
@@ -362,7 +362,7 @@ def spearmanr_graph(df_s, test_x, test_names_s, fitted_classifier):
     print(rank)
     return fig_s, rank
 if __name__ == "__main__":
-    PATH = os.path.abspath('AD_CTRL_CTRL')#Put the current path
+    PATH = os.path.abspath('IMAGES')#Put the current path
     FILES = '*.nii'#find all nifti files with .nii in the name
     START = perf_counter()#Start the system timer
     SUBJ = glob.glob(os.path.join(PATH, FILES))
@@ -392,7 +392,7 @@ if __name__ == "__main__":
 
     START = perf_counter()
     IMAGES = CTRL_IMAGES.copy()
-    MEAN_MASK = mean_mask(IMAGES, len(CTRL_IMAGES), overlap=0.97)
+    MEAN_MASK, HIST = mean_mask(IMAGES, len(CTRL_IMAGES), overlap=0.97)
     POS_VOX = np.where(MEAN_MASK == 1)
     IMAGES.extend(AD_IMAGES.copy())
     print("Time: {}".format(perf_counter()-START))#Print performance time
@@ -410,22 +410,22 @@ if __name__ == "__main__":
     CLASS = input("Select Classifier between 'SVC' or 'SGD':")
     FEATURES_PCA = []
     FEATURES_RFE = []
-    FIG = cev(X)
-    QUEST = input("Do you want to use the selected number of PCAs(Yes/No)?")
-    if QUEST == 'Yes':
-        PERC = [0.80, 0.85, 0.90, 0.95]
-        for item in PERC:
-            FEATURES_PCA.append(n_comp(X, item))
-    elif QUEST == 'No':
-        CONT = 0
-        NUM = input("Insert PCA feature n{} (ends with 'stop'):".format(CONT))
-        while(NUM!='stop'):
-            FEATURES_PCA.append(int(NUM))
-            CONT = CONT+1
-            NUM = input("Insert PCA components n{} (ends with 'stop'):".format(
-                                                                       CONT))
-    else:
-        logging.warning('Your selection was invalid')
+    # FIG = cum_explained_variance(X)
+    # QUEST = input("Do you want to use the selected number of PCAs(Yes/No)?")
+    # if QUEST == 'Yes':
+    #     PERC = [0.80, 0.85, 0.90, 0.95]
+    #     for item in PERC:
+    #         FEATURES_PCA.append(n_comp(X, item))
+    # elif QUEST == 'No':
+    CONT = 0
+    NUM = input("Insert PCA feature n{} (ends with 'stop'):".format(CONT))
+    while(NUM!='stop'):
+        FEATURES_PCA.append(int(NUM))
+        CONT = CONT+1
+        NUM = input("Insert PCA components n{} (ends with 'stop'):".format(
+                                                                   CONT))
+    # else:
+    #     logging.warning('Your selection was invalid')
     CONT = 0
     NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(
                                                                       CONT))
@@ -456,33 +456,41 @@ if __name__ == "__main__":
     N_COMP = int(input("Choose PCA best number of components:"))
     SHAPE = MEAN_MASK.shape
     print("Fitting PCA...")
-    SUPPORT_PCA, CLASSIFIER_PCA, ZERO_M_PCA = rfe_pca_reductor(X, Y, CLASS,
+    SUPPORT_PCA, CLASSIFIER_PCA = rfe_pca_reductor(X, Y, CLASS,
                                                                N_COMP,
-                                                               POS_VOX, SHAPE,
                                                                'PCA')
-    TEST_X_PCA, TEST_Y_PCA, FITTED_CLASSIFIER_PCA = new_data(X, Y, TEST_SET_DATA,
+    TEST_X_PCA, TEST_Y_PCA, FITTED_CLASSIFIER_PCA, ZERO_M_PCA = new_data(X, Y,
+                                                             TEST_SET_DATA,
                                                              TEST_SET_LAB,
-                                                             SUPPORT_PCA, CLASS)
+                                                             SUPPORT_PCA,
+                                                             POS_VOX, SHAPE,
+                                                             CLASS)
     FIG, AXS = plt.subplots()
     plt.title('Best features found from PCA and RFE')
     AXS.imshow(MEAN_MASK[SHAPE[0]//2, :, :], cmap='Greys_r')
     AXS.imshow(ZERO_M_PCA[SHAPE[0]//2, :, :], alpha=0.6, cmap='RdGy_r')
     #rigth now it eliminate the old X with the newer and reducted_X
     print("Fitting RFE...")
-    SUPPORT_RFE, CLASSIFIER_RFE, ZERO_M_RFE = rfe_pca_reductor(X, Y, CLASS,
-                                                               N_FEAT, POS_VOX,
-                                                               SHAPE, 'RFE')
-    TEST_X_RFE, TEST_Y_RFE, FITTED_CLASSIFIER_RFE = new_data(X, Y, TEST_SET_DATA,
+    SUPPORT_RFE, CLASSIFIER_RFE = rfe_pca_reductor(X, Y, CLASS,
+                                                               N_FEAT, 'RFE')
+    TEST_X_RFE, TEST_Y_RFE, FITTED_CLASSIFIER_RFE, ZERO_M_RFE = new_data(X, Y,
+                                                             TEST_SET_DATA,
                                                              TEST_SET_LAB,
-                                                             SUPPORT_RFE, CLASS)
+                                                             SUPPORT_RFE,
+                                                             POS_VOX, SHAPE,
+                                                             CLASS)
     AXS.imshow(ZERO_M_RFE[SHAPE[0]//2, :, :], alpha=0.4, cmap='gist_gray')
+    
     #rigth now it eliminate the old X with the newer and reducted_X
-
+    mask_PCA = np.where(ZERO_M_PCA>0,1,0)
+    mask_RFE = np.where(ZERO_M_RFE>0,1,0)
+    sum_MASKS = mask_PCA + mask_RFE
+    ZERO_M_COM = np.where(sum_MASKS>1, ZERO_M_PCA + ZERO_M_RFE, 0)
     #glass_brain(mean_mask, 0.1, 4, True, Zero_M )
 #%%Distances from the Hyperplane. Due to the random nature of the import and
 #split in traning set we need to search the correct elements foe spearman test
     import pandas as pd
-    DFM = pd.read_table(r'C:\Users\Andrea\Documents\GitHub\CMEPDA_exam\AD_CTRL_metadata.csv')
+    DFM = pd.read_table(r'C:\Users\Andrea\Documents\GitHub\AD_CTRL_metadata.csv')
     FIG_PCA, RANK_PCA = spearmanr_graph(DFM, TEST_X_PCA, TEST_NAMES, FITTED_CLASSIFIER_PCA)
     FIG_RFE, RANK_RFE = spearmanr_graph(DFM, TEST_X_RFE, TEST_NAMES, FITTED_CLASSIFIER_RFE)
 #%%#ROC-CV

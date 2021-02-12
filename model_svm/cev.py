@@ -9,20 +9,15 @@ Original file is located at
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from matplotlib import pyplot as plt
+import seaborn as sns
 import numpy as np
 
-<<<<<<< HEAD
-def cum_explained_variance(data, x_in):
+def cum_explained_variance(data):
     '''
     cum_explained_variance return a 1D array that contain the cumulative explained/
     variance of a dataset and a plot of cumulative explained variance vs number of/
     possible components.
-=======
-def cum_explained_variance(data):
-    '''
-    cum_explained_variance return a 1D array that contain the cumulative explained/
-    variance of a dataset.
->>>>>>> 0396bd38d96b64dc22a56d46296831f86816d350
 
     Parameters
     ----------
@@ -39,10 +34,9 @@ def cum_explained_variance(data):
     pca = PCA()
     pca.fit_transform(standardized_data)
     ex_var_ratio = pca.explained_variance_ratio_
-<<<<<<< HEAD
     cum_var_exp = np.cumsum(ex_var_ratio)
 
-    x_in = np.linespace(0, data.shape[0], data.shape[0]+1)
+    x_in = np.linspace(0, data.shape[0], data.shape[0]+1)
     axs = sns.lineplot(x_in, cum_var_exp, label='cumulative explained variance')
     plt.xlabel("Number of components")
     plt.ylabel("Cumulative explained variance (%)")
@@ -56,8 +50,3 @@ def cum_explained_variance(data):
     plt.show()
 
     return cum_var_exp, axs
-=======
-    #ex_var = pca.explained_variance_
-    cum_var_exp = np.cumsum(ex_var_ratio)
-    return cum_var_exp
->>>>>>> 0396bd38d96b64dc22a56d46296831f86816d350

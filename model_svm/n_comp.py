@@ -10,8 +10,6 @@ Original file is located at
 #from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 
-from Neuroimages_GM_AD_Detection.svm_with_pca_rfe import svm_with_pca_rfe
-from Neuroimages_GM_AD_Detection.vectorize_subj import vectorize_subj
 
 PERCENTAGE = [] #insert percentages found.
 FEATURES = []
@@ -33,16 +31,7 @@ def n_comp(data, percentage):
     Returns the number of PCs.
 
     '''
-<<<<<<< HEAD
     pca = PCA(percentage)
-    principal_components = pca.fit_transform(standardized_data)
-=======
-    #standardized_data = StandardScaler().fit_transform(data)
-    pca = PCA(percentage)
-    #principal_components = pca.fit_transform(standardized_data)
->>>>>>> 0396bd38d96b64dc22a56d46296831f86816d350
     c_n = pca.n_components_
     return c_n
 
-for i in PERCENTAGE:
-    FEATURES.append(n_comp(DATASET, i))
