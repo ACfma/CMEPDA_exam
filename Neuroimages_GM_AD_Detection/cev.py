@@ -11,25 +11,53 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import numpy as np
 
+<<<<<<< HEAD
+def cum_explained_variance(data, x_in):
+    '''
+    cum_explained_variance return a 1D array that contain the cumulative explained/
+    variance of a dataset and a plot of cumulative explained variance vs number of/
+    possible components.
+=======
 def cum_explained_variance(data):
     '''
     cum_explained_variance return a 1D array that contain the cumulative explained/
     variance of a dataset.
+>>>>>>> 0396bd38d96b64dc22a56d46296831f86816d350
 
     Parameters
     ----------
     data : ndarray
         Array obtained from all images.
-
     Returns
     -------
-    Return a one-dimentional array with shape(n_samples)
+    cum_var_exp : ndarray
+        Array with shape (n_samples)
+    axs : seaborn lineplot
 
     '''
     standardized_data = StandardScaler().fit_transform(data)
     pca = PCA()
     pca.fit_transform(standardized_data)
     ex_var_ratio = pca.explained_variance_ratio_
+<<<<<<< HEAD
+    cum_var_exp = np.cumsum(ex_var_ratio)
+
+    x_in = np.linespace(0, data.shape[0], data.shape[0]+1)
+    axs = sns.lineplot(x_in, cum_var_exp, label='cumulative explained variance')
+    plt.xlabel("Number of components")
+    plt.ylabel("Cumulative explained variance (%)")
+    plt.axhline(y=0.95, color='k', linestyle='--', label='95% Explained Variance')
+    plt.axhline(y=0.90, color='c', linestyle='--', label='90% Explained Variance')
+    plt.axhline(y=0.85, color='r', linestyle='--', label='85% Explained Variance')
+    plt.axhline(y=0.80, color='y', linestyle='--', label='80% Explained Variance')
+    plt.legend(loc='best')
+    plt.legend(loc='best')
+    plt.title("Cumulative explained variance vs number of components")
+    plt.show()
+
+    return cum_var_exp, axs
+=======
     #ex_var = pca.explained_variance_
     cum_var_exp = np.cumsum(ex_var_ratio)
     return cum_var_exp
+>>>>>>> 0396bd38d96b64dc22a56d46296831f86816d350
