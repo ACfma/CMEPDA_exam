@@ -4,7 +4,7 @@ import os
 
 import SimpleITK as sitk
 
-from Neuroimages_GM_AD_Detection.Brain_Sequence import Brain_Sequence
+from model_svm.Brain_Sequence import Brain_Sequence
 
 class TestCore(unittest.TestCase):
     '''Testing the import function'''
