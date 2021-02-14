@@ -514,7 +514,8 @@ if __name__ == "__main__":
     PATH = os.path.abspath('')
     for item in list(M_DICT.keys()):
         img = sitk.GetImageFromArray(M_DICT[item])
-        sitk.WriteImage(img,os.path.join(PATH, 'Masks/{}.nii'.format(item)))
+        PATH = os.path.join(PATH, 'Masks')
+        sitk.WriteImage(img,os.path.join(PATH, '{}.nii'.format(item)))
     
     #glass_brain(mean_mask, 0.1, 4, True, Zero_M )
 #%%
