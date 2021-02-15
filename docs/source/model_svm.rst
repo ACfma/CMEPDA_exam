@@ -4,14 +4,6 @@ model\_svm package
 Submodules
 ----------
 
-model\_svm.Brain\_Sequence module
----------------------------------
-
-.. automodule:: model_svm.Brain_Sequence
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 model\_svm.brain\_animation module
 ----------------------------------
 
