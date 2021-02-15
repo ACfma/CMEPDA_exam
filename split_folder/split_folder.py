@@ -13,7 +13,7 @@ import glob
 import argparse
 import SimpleITK as sitk
 from sklearn.model_selection import train_test_split
-from thread_pool import thread_pool
+from split_folder.thread_pool import thread_pool
 import shutil
 from time import perf_counter
 def split_folder(image_path):
