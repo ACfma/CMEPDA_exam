@@ -1,5 +1,5 @@
 '''
-Split a certain number of images in train and test groups and save it as well as \
+split_folder splits a certain number of images in train and test groups and save it as well as \
 nifti files. The split will be executed using train_test_split function from \
 scikit-learn.\n The original header is lost within the process.\n\
 The files will be saved in two folder 'train_set' and 'test_set' inside the same \
