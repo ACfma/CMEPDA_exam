@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-This module will create an animation over one of the three dimension in order\
- to better visualize your data.
+brain_animation creates an animation over one of the three dimension in order \
+to better visualize your data.
 As standalone program, it will visualize a random array od shape (121,145,121).
 """
 from matplotlib import pyplot as plt

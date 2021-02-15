@@ -1,5 +1,5 @@
 '''
-This module will import all nifti files from subdirectories and divide them by\
+thread_pool imports all nifti files from subdirectories and divide them by\
  name if a consistency condition is fullfilled.
 '''
 

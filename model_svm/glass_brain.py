@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 """
-This module will show a simple 3D rappresentation of your data.
+glass_brain shows a simple 3D rappresentation of your data.
 Attention: the function will rotate the image with the permutation:
 -ijk->jki
-The function WILL ALSO DISPLAY IT USING BROWSER.
+The function ALSO DISPLAYS IT USING BROWSER.
 """
 import numpy as np
 import plotly.graph_objs as go

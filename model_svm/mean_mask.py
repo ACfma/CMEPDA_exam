@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-mean_mask module allows you to obtain a mean mask from ana array of simpleITK images
+mean_mask allows to obtain a mean mask from an array of SimpleITK images.
 """
 import os
 import glob
@@ -49,9 +49,9 @@ def mean_mask(images, ctrl, overlap = 0.97):
 
         '''
         nonlocal masks
-        threshold_filters= sitk.RenyiEntropyThresholdImageFilter() # best threshold i could find
-        threshold_filters.SetInsideValue(0)#
-        threshold_filters.SetOutsideValue(1)#binomial I/O
+        threshold_filters= sitk.RenyiEntropyThresholdImageFilter()
+        threshold_filters.SetInsideValue(0)
+        threshold_filters.SetOutsideValue(1)
         thresh_img = threshold_filters.Execute(image)
         msk = sitk.GetArrayFromImage(thresh_img)
         masks.append(msk)

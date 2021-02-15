@@ -1,5 +1,5 @@
 """
-This program will test the ROC curve with std. deviation.
+roc_cv tests the ROC curve with std. deviation using k-fold cross validation.
 """
 import numpy as np
 from matplotlib import pyplot as plt

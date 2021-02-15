@@ -1,4 +1,4 @@
-'''This program uses SVM with PCA and RFE reductions in order to analyze the \
+'''model_svm uses SVM with PCA and RFE reductions in order to analyze the \
  most important features considering an ensable of images. The resoults will be\
  saved as nifti images in a new folder named 'Masks'.'''
 import os
@@ -69,11 +69,11 @@ def lab_names(ctrl_images_in, ad_images_in, ctrl_names_in, ad_names_in):
     -------
     labels_in : ndarray
         Array of labels.
-    names_in : list
+    names_in : ndarray
         Array of paths to file with the same order as labels.
     '''
     zeros = np.array([1]*len(ctrl_images_in))
-    ones = np.asarray([-1]*len(ad_images_in))
+    ones = np.array([-1]*len(ad_images_in))
     labels_in = np.append(zeros, ones, axis=0)
     names_in = np.append(np.array(ctrl_names_in), np.array(ad_names_in), axis=0)
     return labels_in, names_in
@@ -352,8 +352,7 @@ def spearmanr_graph(df_s, test_x, test_names_s, fitted_classifier):
                     ad_s.append(True)
                 else:
                     ad_s.append(False)
-    #Serve di capire come confrontare nomi nella tabella con quelli del vettore/
-    #"names" splittato in modo da prendere MMSE e fare in confronto
+
     ad_s = np.array(ad_s)
     mmse = np.array(mmse)
     distances = fitted_classifier.decision_function(test_x)/np.sqrt(
@@ -529,7 +528,7 @@ if __name__ == "__main__":
     plt.figure()
     FIG_RFE, RANK_RFE = spearmanr_graph(DFM, TEST_X_RFE, TEST_NAMES, FITTED_CLASSIFIER_RFE)
     plt.show(block=False)
-#%%#ROC-CV
+#%%
     N_SPLITS = 5
     X, Y = TEST_X_PCA, TEST_Y_PCA
     CVS = RepeatedStratifiedKFold(n_splits=N_SPLITS, n_repeats=3, random_state=42)
