@@ -22,20 +22,21 @@ from sklearn.utils import shuffle
 from sklearn.preprocessing import StandardScaler
 from scipy.stats import spearmanr
 
-from thread_pool import thread_pool
-from brain_animation import brain_animation
-from mean_mask import mean_mask
-from roc_cv import roc_cv
-#from Neuroimages_GM_AD_Detection.glass_brain import glass_brain
-from cev import cum_explained_variance
-from n_comp import n_comp
+from model_svm.thread_pool import thread_pool
+from model_svm.brain_animation import brain_animation
+from model_svm.mean_mask import mean_mask
+from model_svm.roc_cv import roc_cv
+#from model_svm.glass_brain import glass_brain
+from model_svm.cev import cum_explained_variance
+from model_svm.n_comp import n_comp
 
 
 def vectorize_subj(images_in, mask):
     '''
     vectorize_subj return a two dimentional array of given set of images in /
-    which every line correspond to an image and every row to a voxel selected/
-     by the mask used.
+    which every line correspond to an image and every row to a voxel selected /
+    by the mask used.
+
     Parameters
     ----------
     images_in: ndarray or list
@@ -55,6 +56,7 @@ def vectorize_subj(images_in, mask):
 def lab_names(ctrl_images_in, ad_images_in, ctrl_names_in, ad_names_in):
     '''
     lab_names create an array of labels (-1,1) and paths for our machine learning procedure.
+
     Parameters
     ----------
     ctrl_images_in : list
@@ -85,6 +87,7 @@ def rfe_pca_boxplot(x_in, y_in, clf, features_s, c_in, selector_s=None,
      tests an confronts your estimator using roc_auc.
     The function support feature reduction based on RFE or PCA and make the\
      classification based on SGD using a SVC with linear kernel.
+
     Parameters
     ----------
     x_in : ndarray
@@ -191,6 +194,7 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, selector_r=None, random_state=
     rfe_pca_reductor will create a support matrix for reproducing best\
     features found. \n
     The images must be three dimensional.
+
     Parameters
     ----------
     x_in : ndarray
@@ -247,9 +251,10 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, selector_r=None, random_state=
     return support, classifier_r
 def new_data(x_in, y_in, test_set_data, test_set_lab, support, pos_vox_r, shape_r, clf,random_state=42):
     '''
-    new_data allow the reduction of the initial features to the ensamble\
-     defined by the support along with the score of the fitted classifier with\
-     the new set of features.
+    new_data allow the reduction of the initial features to the ensamble \
+    defined by the support along with the score of the fitted classifier with \
+    the new set of features.
+
     Parameters
     ----------
     x_in : ndarray
@@ -322,8 +327,9 @@ def new_data(x_in, y_in, test_set_data, test_set_lab, support, pos_vox_r, shape_
 
 def spearmanr_graph(df_s, test_x, test_names_s, fitted_classifier):
     '''
-    spearmanr_graph returns plotted classification of subjects along with\
-     Spearman r-value and p-value.
+    spearmanr_graph returns plotted classification of subjects along with \
+    Spearman r-value and p-value.
+
     Parameters
     ----------
     df_s : pandas.Dataframe
