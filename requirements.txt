@@ -5,3 +5,5 @@ sklearn
 seaborn
 plotly
 scipy
+keras
+tensorflow
