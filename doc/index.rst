@@ -10,10 +10,10 @@ Welcome to CMEPDA_exam's documentation!
    :maxdepth: 2
    :caption: Contents:
    
-   modules
-   model_svm
-   model_cnn
-   split_folder
+   source/modules
+   source/model_svm
+   source/model_cnn
+   source/split_folder
 
 
 Indices and tables
