@@ -143,9 +143,9 @@ def rfe_pca_boxplot(x_in, y_in, clf, features_s, c_in, selector_s=None,
             ('s', RFE(estimator=classifier_s, n_features_to_select=f, step=step)),
             ('m', classifier_s)]) for f in features_s]
     elif selector_s == 'PCA':
-        pca = PCA()
-        x_temp = pca.fit_transform(x_in)
-        x_in = x_temp
+        #pca = PCA()
+        #x_temp = pca.fit_transform(x_in)
+        #x_in = x_temp
         models = [Pipeline(steps=[
             ('s', PCA(n_components=f)), ('m', classifier_s)]) for f in features_s]
     else:
@@ -191,7 +191,7 @@ def rfe_pca_boxplot(x_in, y_in, clf, features_s, c_in, selector_s=None,
     else:
         return best_n_f, best_c, None
 
-def rfe_pca_reductor(x_in, y_in, clf, features_r, selector_r=None, random_state=42):
+def rfe_pca_reductor(x_in, y_in, clf, features_r, c_r, selector_r=None, random_state=42):
     '''
     rfe_pca_reductor will create a support matrix for reproducing best\
     features found. \n
@@ -207,6 +207,8 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, selector_r=None, random_state=
         Selected classifier between 'SDG' and 'SVC'.
     features_r : int
         Number of selected features.
+    cs : float
+        Selected c for model.
     selector_r : str, optional
         Selector of features choosen between 'PCA' or 'RFE'. The default is\
          None.
@@ -222,10 +224,11 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, selector_r=None, random_state=
     stand_x = StandardScaler().fit_transform(x_in)
     if clf == 'SGD':
         classifier_r = SGDClassifier(class_weight='balanced',
+                                     alpha=1/(c_r*stand_x.shape[0]),
                                      random_state=random_state, n_jobs=-1)
 
     elif clf == 'SVC':
-        classifier_r = SVC(kernel='linear', class_weight='balanced')
+        classifier_r = SVC(kernel='linear', C=c_r, class_weight='balanced')
     else:
         logging.error("The selected classifier doesn't belong to the options.")
         return None, None, None
@@ -440,8 +443,8 @@ if __name__ == "__main__":
     plt.figure()
     FIG = cum_explained_variance(X)
     plt.show(block=False)
-    PERC = [0.80, 0.85, 0.90, 0.95]
-    QUEST = input("Do you want to use the number of PCAs at 80-85-90-95%%?(Yes/No)")
+    PERC = [0.60, 0.70, 0.80, 0.85, 0.90, 0.95]
+    QUEST = input("Do you want to use the number of PCAs at 60-70-80-85-90-95%?(Yes/No)")
     if QUEST == 'Yes':
         for item in PERC:
             FEATURES_PCA.append(n_comp(X, item))
@@ -455,22 +458,25 @@ if __name__ == "__main__":
                                                                    CONT))
     else:
         logging.warning('Your selection was invalid')
-    CONT = 0
-    NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(
-                                                                      CONT))
-    
     SELECTOR = 'PCA'
+
     BEST_N_PCA, CS_PCA, FIG_PCA = rfe_pca_boxplot(STAND_X, Y, CLASS,
                                                   FEATURES_PCA, C,
                                                   selector_s='PCA',
                                                   figure=True)
+
+    CONT = 0
+    NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(
+                                                                      CONT))
+
     plt.show(block=False)
     print("PCA boxplot's time: {}".format(process_time()-start_pca_box))
     start_rfe_box = process_time()
-    while(NUM!='stop'):
-        FEATURES_RFE.append(int(NUM))
-        CONT = CONT+1
-        NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(CONT))
+    # while(NUM!='stop'):
+    #     FEATURES_RFE.append(int(NUM))
+    #     CONT = CONT+1
+    #     NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(CONT))
+    FEATURES_RFE = [500000, 300000, 100000, 50000, 10000, 5000]
     BEST_N_RFE, CS_RFE, FIG_RFE = rfe_pca_boxplot(STAND_X, Y, CLASS,
                                                   FEATURES_RFE, C,
                                                   selector_s='RFE',
@@ -489,11 +495,11 @@ if __name__ == "__main__":
     TEST_SET_LAB, TEST_NAMES = lab_names(CTRL_IMAGES, AD_IMAGES,
                                          CTRL_NAMES, AD_NAMES)
     start_pca_fred = process_time()
-    N_COMP = int(input("Choose PCA best number of components:"))
-    N_FEAT = int(input("Choose RFE retained features:"))
+    N_COMP = BEST_N_PCA
+    N_FEAT = BEST_N_RFE
     SHAPE = MEAN_MASK.shape
     print("Fitting PCA...")
-    SUPPORT_PCA, CLASSIFIER_PCA = rfe_pca_reductor(X, Y, CLASS, N_COMP, 'PCA')
+    SUPPORT_PCA, CLASSIFIER_PCA = rfe_pca_reductor(X, Y, CLASS, BEST_N_PCA, CS_PCA, 'PCA')
     TEST_X_PCA, TEST_Y_PCA, FITTED_CLASSIFIER_PCA, M_PCA = new_data(X, Y,
                                                              TEST_SET_DATA,
                                                              TEST_SET_LAB,
@@ -505,7 +511,7 @@ if __name__ == "__main__":
                                                 process_time()-start_pca_fred))
     start_rfe_fred = process_time()
     print("Fitting RFE...")
-    SUPPORT_RFE, CLASSIFIER_RFE = rfe_pca_reductor(X, Y, CLASS, N_FEAT, 'RFE')
+    SUPPORT_RFE, CLASSIFIER_RFE = rfe_pca_reductor(X, Y, CLASS,BEST_N_RFE, CS_RFE, 'RFE')
     TEST_X_RFE, TEST_Y_RFE, FITTED_CLASSIFIER_RFE, M_RFE = new_data(X, Y,
                                                              TEST_SET_DATA,
                                                              TEST_SET_LAB,
