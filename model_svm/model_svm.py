@@ -146,6 +146,11 @@ def rfe_pca_boxplot(x_in, y_in, clf, features_s, c_in, selector_s=None,
         #pca = PCA()
         #x_temp = pca.fit_transform(x_in)
         #x_in = x_temp
+        f_max = x_in.shape[0]*((n_splits_k-1)/n_splits_k)
+        if any(features_s>f_max):
+            logging.warning('One or more of your input PC is out of range.\
+                            Trying allowed combinations...')
+        features_s = features_s[features_s<f_max]
         models = [Pipeline(steps=[
             ('s', PCA(n_components=f)), ('m', classifier_s)]) for f in features_s]
     else:
@@ -204,7 +209,7 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, c_r, selector_r=None, random_s
     y_in : ndarray
         Training set of labels. Must be 2D array.
     clf : str
-        Selected classifier between 'SDG' and 'SVC'.
+        Selected classifier between 'SGD' and 'SVC'.
     features_r : int
         Number of selected features.
     cs : float
@@ -244,7 +249,7 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, c_r, selector_r=None, random_s
         support = np.in1d(feat, sort_feat)
     elif selector_r == 'RFE':
         step = float(input("Insert step for RFE:"))
-        rfe = RFE(estimator=classifier_r, n_features_to_select=features_r, step=step)#Classic RFE
+        rfe = RFE(estimator=classifier_r, n_features_to_select=features_r, step=step)
         fit_r = rfe.fit(x_in, y_in)
         support = fit_r.support_
 
@@ -435,24 +440,24 @@ if __name__ == "__main__":
     X, Y = TRAIN_SET_DATA, TRAIN_SET_LAB
     #%%
     CLASS = input("Select Classifier between 'SVC' or 'SGD':")
-    FEATURES_PCA = []
-    FEATURES_RFE = []
-    C = np.array([0.0001, 0.001, 0.01, 1., 10, 100])
+    FEATURES_PCA = np.empty(0, dtype=int)
+    FEATURES_RFE = np.empty(0, dtype=int)
+    C = np.array([0.0001])
     STAND_X = StandardScaler().fit_transform(X)
     start_pca_box = process_time()
     plt.figure()
-    FIG = cum_explained_variance(X)
+    FIG = cum_explained_variance(STAND_X)
     plt.show(block=False)
     PERC = [0.60, 0.70, 0.80, 0.85, 0.90, 0.95]
     QUEST = input("Do you want to use the number of PCAs at 60-70-80-85-90-95%?(Yes/No)")
     if QUEST == 'Yes':
         for item in PERC:
-            FEATURES_PCA.append(n_comp(X, item))
+            FEATURES_PCA = np.append(FEATURES_PCA, n_comp(STAND_X, item))
     elif QUEST == 'No':
         CONT = 0
         NUM = input("Insert PCA feature n{} (ends with 'stop'):".format(CONT))
         while(NUM!='stop'):
-            FEATURES_PCA.append(int(NUM))
+            np.append(FEATURES_PCA, int(NUM))
             CONT = CONT+1
             NUM = input("Insert PCA components n{} (ends with 'stop'):".format(
                                                                    CONT))
@@ -473,10 +478,10 @@ if __name__ == "__main__":
     print("PCA boxplot's time: {}".format(process_time()-start_pca_box))
     start_rfe_box = process_time()
     # while(NUM!='stop'):
-    #     FEATURES_RFE.append(int(NUM))
+    #     FEATURES_RFE = np.append(FEATURES_RFE, int(NUM))
     #     CONT = CONT+1
     #     NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(CONT))
-    FEATURES_RFE = [500000, 300000, 100000, 50000, 10000, 5000]
+    FEATURES_RFE = np.array([500000])
     BEST_N_RFE, CS_RFE, FIG_RFE = rfe_pca_boxplot(STAND_X, Y, CLASS,
                                                   FEATURES_RFE, C,
                                                   selector_s='RFE',
