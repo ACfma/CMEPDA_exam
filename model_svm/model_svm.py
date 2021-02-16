@@ -4,23 +4,25 @@
 import os
 import argparse
 import glob
-from time import perf_counter
+from time import perf_counter, process_time
 import logging
 import numpy as np
 from matplotlib import pyplot as plt
 import SimpleITK as sitk
+import seaborn as sns
 
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.feature_selection import RFE
 from sklearn.decomposition import PCA
-from sklearn.model_selection import RepeatedStratifiedKFold
+from sklearn.model_selection import RepeatedStratifiedKFold, KFold
 from sklearn.model_selection import cross_val_score
 from sklearn.svm import SVC
 from sklearn.linear_model import SGDClassifier
 from sklearn.utils import shuffle
 from sklearn.preprocessing import StandardScaler
 from scipy.stats import spearmanr
+from sklearn.metrics import confusion_matrix
 
 from model_svm.thread_pool import thread_pool
 from model_svm.brain_animation import brain_animation
@@ -309,13 +311,27 @@ def new_data(x_in, y_in, test_set_data, test_set_lab, support, pos_vox_r, shape_
     test_y = np.array(test_set_lab)
     #Resume
     scores = []
-    for train, test in RepeatedStratifiedKFold(
-        n_splits=2,n_repeats=5, random_state=random_state).split(test_x, test_y):
-                                                       
+    confusion = []
+    for train, test in KFold(
+        n_splits=5, shuffle = True, random_state=random_state).split(test_x, test_y):
+        y_pred = fitted_classifier.predict(test_x[test]) 
+        conf = confusion_matrix(test_y[test], y_pred, labels=[-1,1]).ravel()
+        confusion.append(conf)                                 
         scores.append(fitted_classifier.score(test_x[test], test_y[test]))
 
     scores = np.array(scores)
+    confusion = np.array(confusion)
+    m_conf = np.mean(confusion, axis = 0)
+    sd_conf = np.std(confusion, axis = 0)
     print('Accuracy = {} +/- {}'.format(scores.mean(), scores.std()))
+    print('tn = {} +/- {}'.format(m_conf[0], sd_conf[0]))
+    print('fp = {} +/- {}'.format(m_conf[1], sd_conf[1]))
+    print('fn = {} +/- {}'.format(m_conf[2], sd_conf[2]))
+    print('tp = {} +/- {}'.format(m_conf[3], sd_conf[3]))
+    plt.figure()
+    sns.heatmap(m_conf.reshape(2,2), annot=True, xticklabels = ['AD', 'CTRL'], 
+                yticklabels = ['AD', 'CTRL'])
+    plt.show(block = False)
     zero_m = np.zeros(shape_r)
     pos_1 = pos_vox_r[0][support]
     pos_2 = pos_vox_r[1][support]
@@ -375,39 +391,38 @@ def spearmanr_graph(df_s, test_x, test_names_s, fitted_classifier):
     print(rank)
     return fig_s, rank
 if __name__ == "__main__":
-    # PATH = os.path.abspath('IMAGES')#Put the current path
-    # FILES = '*.nii'#find all nifti files with .nii in the name
-    # START = perf_counter()#Start the system timer
-    # SUBJ = glob.glob(os.path.join(PATH, FILES))
-    # AD_IMAGES, AD_NAMES, CTRL_IMAGES, CTRL_NAMES = thread_pool(SUBJ)
-    # print("Time: {}".format(perf_counter()-START))#Print performance time
-    parser = argparse.ArgumentParser(
-          description="Analyze your data using different kind of SVC with linear\
-              kernel and reduction of features")
-    parser.add_argument('-trainpath', help='Path to your train files', type=str)
-    parser.add_argument('-testpath', help='Path to your test files', type=str)
-    args = parser.parse_args()
-    PATH = args.trainpath
-    FILES = r"*.nii"
-
+    PATH = os.path.abspath('IMAGES/train_set')#Put the current path
+    FILES = '*.nii'#find all nifti files with .nii in the name
     START = perf_counter()#Start the system timer
-
     SUBJ = glob.glob(os.path.join(PATH, FILES))
-
     AD_IMAGES, AD_NAMES, CTRL_IMAGES, CTRL_NAMES = thread_pool(SUBJ)
-
     print("Time: {}".format(perf_counter()-START))#Print performance time
+    # parser = argparse.ArgumentParser(
+    #       description="Analyze your data using different kind of SVC with linear\
+    #           kernel and reduction of features")
+    # parser.add_argument('-trainpath', help='Path to your train files', type=str)
+    # parser.add_argument('-testpath', help='Path to your test files', type=str)
+    # args = parser.parse_args()
+    # PATH = args.trainpath
+    # FILES = r"*.nii"
+
+    # START = perf_counter()#Start the system timer
+
+    # SUBJ = glob.glob(os.path.join(PATH, FILES))
+
+    # AD_IMAGES, AD_NAMES, CTRL_IMAGES, CTRL_NAMES = thread_pool(SUBJ)
+
+    # print("Time: {}".format(perf_counter()-START))#Print performance time
 
     ANIM = brain_animation(sitk.GetArrayViewFromImage(CTRL_IMAGES[0]), 50, 100)
     plt.show(block=False)
 #%% Try edge detection for mask
-    START = perf_counter()
     IMAGES = CTRL_IMAGES.copy()
     IMAGES.extend(AD_IMAGES.copy())
     MEAN_MASK = mean_mask(IMAGES, len(CTRL_IMAGES), overlap=0.97)
     POS_VOX = np.where(MEAN_MASK == 1)
-    print("Time: {}".format(perf_counter()-START))
 #%%Select only the elements of the mask in all the images arrays
+    start_glob = process_time()
     DATASET = vectorize_subj(IMAGES, MEAN_MASK)
 #%% Making labels
     LABELS, NAMES = lab_names(CTRL_IMAGES, AD_IMAGES, CTRL_NAMES, AD_NAMES)
@@ -419,6 +434,9 @@ if __name__ == "__main__":
     CLASS = input("Select Classifier between 'SVC' or 'SGD':")
     FEATURES_PCA = []
     FEATURES_RFE = []
+    C = np.array([0.0001, 0.001, 0.01, 1., 10, 100])
+    STAND_X = StandardScaler().fit_transform(X)
+    start_pca_box = process_time()
     plt.figure()
     FIG = cum_explained_variance(X)
     plt.show(block=False)
@@ -440,33 +458,28 @@ if __name__ == "__main__":
     CONT = 0
     NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(
                                                                       CONT))
-    while(NUM!='stop'):
-        FEATURES_RFE.append(int(NUM))
-        CONT = CONT+1
-        NUM = input("Insert PCA feature n{} (ends with 'stop'):".format(CONT))
-
-    C = np.array([0.00001])
-    START = perf_counter()
-    STAND_X = StandardScaler().fit_transform(X)
+    
     SELECTOR = 'PCA'
-    plt.figure()
     BEST_N_PCA, CS_PCA, FIG_PCA = rfe_pca_boxplot(STAND_X, Y, CLASS,
                                                   FEATURES_PCA, C,
                                                   selector_s='PCA',
                                                   figure=True)
     plt.show(block=False)
-    print("Time: {}".format(perf_counter()-START))
-    START = perf_counter()
-    plt.figure()
+    print("PCA boxplot's time: {}".format(process_time()-start_pca_box))
+    start_rfe_box = process_time()
+    while(NUM!='stop'):
+        FEATURES_RFE.append(int(NUM))
+        CONT = CONT+1
+        NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(CONT))
     BEST_N_RFE, CS_RFE, FIG_RFE = rfe_pca_boxplot(STAND_X, Y, CLASS,
                                                   FEATURES_RFE, C,
                                                   selector_s='RFE',
                                                   figure=True)
     plt.show(block=False)
-    print("Time : {}".format(perf_counter()-START))
+    print("RFE boxplot's time: {}".format(process_time()-start_rfe_box))
 #%%
-    PATH = args.testpath
-
+    #PATH = args.testpath
+    PATH = os.path.abspath('IMAGES/test_set')
     SUBJ = glob.glob(os.path.join(PATH, FILES))
 
     AD_IMAGES, AD_NAMES, CTRL_IMAGES, CTRL_NAMES = thread_pool(SUBJ)
@@ -475,9 +488,9 @@ if __name__ == "__main__":
     TEST_SET_DATA = vectorize_subj(IMAGES, MEAN_MASK)
     TEST_SET_LAB, TEST_NAMES = lab_names(CTRL_IMAGES, AD_IMAGES,
                                          CTRL_NAMES, AD_NAMES)
-    
-    N_FEAT = int(input("Choose RFE retained features:"))
+    start_pca_fred = process_time()
     N_COMP = int(input("Choose PCA best number of components:"))
+    N_FEAT = int(input("Choose RFE retained features:"))
     SHAPE = MEAN_MASK.shape
     print("Fitting PCA...")
     SUPPORT_PCA, CLASSIFIER_PCA = rfe_pca_reductor(X, Y, CLASS, N_COMP, 'PCA')
@@ -487,11 +500,10 @@ if __name__ == "__main__":
                                                              SUPPORT_PCA,
                                                              POS_VOX, SHAPE,
                                                              CLASS)
-    FIG, AXS = plt.subplots()
-    plt.title('Best features found from PCA and RFE')
-    AXS.imshow(MEAN_MASK[SHAPE[0]//2, :, :], cmap='Greys_r')
-    AXS.imshow(M_PCA[SHAPE[0]//2, :, :], alpha=0.6, cmap='RdGy_r')
-    
+    plt.title('Confusion matrix obtained with PCA')
+    print('Fit-reduction processing time for PCA: {}'.format(
+                                                process_time()-start_pca_fred))
+    start_rfe_fred = process_time()
     print("Fitting RFE...")
     SUPPORT_RFE, CLASSIFIER_RFE = rfe_pca_reductor(X, Y, CLASS, N_FEAT, 'RFE')
     TEST_X_RFE, TEST_Y_RFE, FITTED_CLASSIFIER_RFE, M_RFE = new_data(X, Y,
@@ -500,6 +512,15 @@ if __name__ == "__main__":
                                                              SUPPORT_RFE,
                                                              POS_VOX, SHAPE,
                                                              CLASS)
+    plt.title('Confusion matrix obtained with RFE')
+    print('Fit-reduction processing time for RFE: {}'.format(
+                                                process_time()-start_rfe_fred))
+
+    print('Total processing time: {}'.format(process_time()-start_glob))
+    FIG, AXS = plt.subplots()
+    plt.title('Best features found from PCA and RFE')
+    AXS.imshow(MEAN_MASK[SHAPE[0]//2, :, :], cmap='Greys_r')
+    AXS.imshow(M_PCA[SHAPE[0]//2, :, :], alpha=0.6, cmap='RdGy_r')
     AXS.imshow(M_RFE[SHAPE[0]//2, :, :], alpha=0.4, cmap='gist_gray')
     plt.show(block=False)
     
@@ -517,9 +538,9 @@ if __name__ == "__main__":
     except:
         os.mkdir('Masks')
     PATH = os.path.abspath('')
+    PATH = os.path.join(PATH, 'Masks')
     for item in list(M_DICT.keys()):
         img = sitk.GetImageFromArray(M_DICT[item])
-        PATH = os.path.join(PATH, 'Masks')
         sitk.WriteImage(img,os.path.join(PATH, '{}.nii'.format(item)))
     
     #glass_brain(mean_mask, 0.1, 4, True, Zero_M )
@@ -528,21 +549,17 @@ if __name__ == "__main__":
     CSV_PATH = input("Insert full path of your .csv with MMSE classification of\
                      your subjects: ")
     DFM = pd.read_table(CSV_PATH)
-    plt.figure()
     FIG_PCA, RANK_PCA = spearmanr_graph(DFM, TEST_X_PCA, TEST_NAMES, FITTED_CLASSIFIER_PCA)
     plt.show(block=False)
-    plt.figure()
     FIG_RFE, RANK_RFE = spearmanr_graph(DFM, TEST_X_RFE, TEST_NAMES, FITTED_CLASSIFIER_RFE)
     plt.show(block=False)
 #%%
     N_SPLITS = 5
     X, Y = TEST_X_PCA, TEST_Y_PCA
     CVS = RepeatedStratifiedKFold(n_splits=N_SPLITS, n_repeats=3, random_state=42)
-    plt.figure()
     FIG, AXS = roc_cv(X, Y, CLASSIFIER_PCA, CVS)
     plt.show(block=False)
     X, Y = TEST_X_RFE, TEST_Y_RFE
     CVS = RepeatedStratifiedKFold(n_splits=N_SPLITS, n_repeats=3, random_state=42)
-    plt.figure()
     FIG, AXS = roc_cv(X, Y, CLASSIFIER_RFE, CVS)
     plt.show(block=False)
