@@ -2,28 +2,31 @@
  most important features considering an ensable of images. The resoults will be\
  saved as nifti images in a new folder named 'Masks'.'''
 import os
+import sys
 import argparse
 import glob
 from time import perf_counter, process_time
 import logging
+
 import numpy as np
 from matplotlib import pyplot as plt
 import SimpleITK as sitk
 import seaborn as sns
+from scipy.stats import spearmanr
 
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV,RepeatedStratifiedKFold, KFold, cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.feature_selection import RFE
 from sklearn.decomposition import PCA
-from sklearn.model_selection import RepeatedStratifiedKFold, KFold
-from sklearn.model_selection import cross_val_score
 from sklearn.svm import SVC
 from sklearn.linear_model import SGDClassifier
 from sklearn.utils import shuffle
 from sklearn.preprocessing import StandardScaler
-from scipy.stats import spearmanr
 from sklearn.metrics import confusion_matrix
 
+
+
+sys.path.insert(0, os.path.abspath(''))
 from model_svm.thread_pool import thread_pool
 from model_svm.brain_animation import brain_animation
 from model_svm.mean_mask import mean_mask
@@ -236,7 +239,7 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, c_r, selector_r=None, random_s
         classifier_r = SVC(kernel='linear', C=c_r, class_weight='balanced')
     else:
         logging.error("The selected classifier doesn't belong to the options.")
-        return None, None, None
+        return None, None
     if selector_r == 'PCA':
         pca = PCA(n_components=features_r, svd_solver='randomized',
                   random_state=random_state)
@@ -255,11 +258,12 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, c_r, selector_r=None, random_s
 
     else:
         logging.error("Your selector is neither 'RFE' or 'PCA'")
-        return None, None, None
+        return None, None
     #Print performance time
 
     return support, classifier_r
-def new_data(x_in, y_in, test_set_data, test_set_lab, support, pos_vox_r, shape_r, clf,random_state=42):
+def new_data(x_in, y_in, test_set_data, test_set_lab, support, pos_vox_r, shape_r,
+             clf,random_state=42):
     '''
     new_data allow the reduction of the initial features to the ensamble \
     defined by the support along with the score of the fitted classifier with \
@@ -303,7 +307,7 @@ def new_data(x_in, y_in, test_set_data, test_set_lab, support, pos_vox_r, shape_
         classifier_n = SVC(kernel='linear', class_weight='balanced')
     else:
         logging.error("The selected classifier doesn't belong to the options.")
-        return None, None, None
+        return None, None, None, None
     red_x = []
     for item in range(x_in.shape[0]):
         red_x.append(x_in[item, support])
@@ -320,11 +324,11 @@ def new_data(x_in, y_in, test_set_data, test_set_lab, support, pos_vox_r, shape_
     #Resume
     scores = []
     confusion = []
-    for train, test in KFold(
+    for _, test in KFold(
         n_splits=5, shuffle = True, random_state=random_state).split(test_x, test_y):
-        y_pred = fitted_classifier.predict(test_x[test]) 
+        y_pred = fitted_classifier.predict(test_x[test])
         conf = confusion_matrix(test_y[test], y_pred, labels=[-1,1]).ravel()
-        confusion.append(conf)                                 
+        confusion.append(conf)
         scores.append(fitted_classifier.score(test_x[test], test_y[test]))
 
     scores = np.array(scores)
@@ -337,7 +341,7 @@ def new_data(x_in, y_in, test_set_data, test_set_lab, support, pos_vox_r, shape_
     print('fn = {} +/- {}'.format(m_conf[2], sd_conf[2]))
     print('tp = {} +/- {}'.format(m_conf[3], sd_conf[3]))
     plt.figure()
-    sns.heatmap(m_conf.reshape(2,2), annot=True, xticklabels = ['AD', 'CTRL'], 
+    sns.heatmap(m_conf.reshape(2,2), annot=True, xticklabels = ['AD', 'CTRL'],
                 yticklabels = ['AD', 'CTRL'])
     plt.show(block = False)
     zero_m = np.zeros(shape_r)
@@ -448,7 +452,7 @@ if __name__ == "__main__":
     plt.figure()
     FIG = cum_explained_variance(STAND_X)
     plt.show(block=False)
-    PERC = [0.60, 0.70, 0.80, 0.85, 0.90, 0.95]
+    PERC = [0.20, 0.40, 0.50]
     QUEST = input("Do you want to use the number of PCAs at 60-70-80-85-90-95%?(Yes/No)")
     if QUEST == 'Yes':
         for item in PERC:
@@ -456,7 +460,7 @@ if __name__ == "__main__":
     elif QUEST == 'No':
         CONT = 0
         NUM = input("Insert PCA feature n{} (ends with 'stop'):".format(CONT))
-        while(NUM!='stop'):
+        while NUM!='stop':
             np.append(FEATURES_PCA, int(NUM))
             CONT = CONT+1
             NUM = input("Insert PCA components n{} (ends with 'stop'):".format(
@@ -534,8 +538,8 @@ if __name__ == "__main__":
     AXS.imshow(M_PCA[SHAPE[0]//2, :, :], alpha=0.6, cmap='RdGy_r')
     AXS.imshow(M_RFE[SHAPE[0]//2, :, :], alpha=0.4, cmap='gist_gray')
     plt.show(block=False)
-    
-    
+
+
     mask_PCA = np.where(M_PCA>0,1,0)
     mask_RFE = np.where(M_RFE>0,1,0)
     sum_MASKS = mask_PCA + mask_RFE
@@ -553,7 +557,7 @@ if __name__ == "__main__":
     for item in list(M_DICT.keys()):
         img = sitk.GetImageFromArray(M_DICT[item])
         sitk.WriteImage(img,os.path.join(PATH, '{}.nii'.format(item)))
-    
+
     #glass_brain(mean_mask, 0.1, 4, True, Zero_M )
 #%%
     import pandas as pd
