@@ -4,10 +4,10 @@ model\_cnn package
 Submodules
 ----------
 
-model\_cnn.confusion\_matrix module
------------------------------------
+model\_cnn.thread\_pool module
+------------------------------
 
-.. automodule:: model_cnn.confusion_matrix
+.. automodule:: model_cnn.thread_pool
    :members:
    :undoc-members:
    :show-inheritance:
@@ -52,18 +52,18 @@ model\_cnn.model\_mmse module
    :undoc-members:
    :show-inheritance:
 
-model\_cnn.roc\_auc\_multilabel module
---------------------------------------
+model\_cnn.roc\_auc\_cv module
+------------------------------
 
-.. automodule:: model_cnn.roc_auc_multilabel
+.. automodule:: model_cnn.roc_auc_cv
    :members:
    :undoc-members:
    :show-inheritance:
 
-model\_cnn.thread\_pool module
-------------------------------
+model\_cnn.confusion\_matrix module
+-----------------------------------
 
-.. automodule:: model_cnn.thread_pool
+.. automodule:: model_cnn.confusion_matrix
    :members:
    :undoc-members:
    :show-inheritance:
