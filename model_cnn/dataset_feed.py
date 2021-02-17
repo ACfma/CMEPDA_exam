@@ -12,9 +12,9 @@ from model_cnn.thread_pool import thread_pool
 from keras.utils import to_categorical
 import numpy as np
 
-def slicing(data, i, j, k, l, mask):
+def parallelepiped(data, i, j, k, l, mask):
     '''
-    Function that returns a 3D images with the selected slices for each dimension.
+    Function that returns a 3D images with the selected slices i,j,k,l for each dimension.
 
     Parameters
     ----------
@@ -99,9 +99,9 @@ if __name__=="__main__":
     print("Time: {}".format(perf_counter()-start))#Print performance time
 
     #Create array images selecting the same slice for AD and CTRL
-    images_ad_sl = slicing(images_ad, 11, 108, 12, 132)
+    images_ad_sl = parallelepiped(images_ad, 11, 108, 12, 132)
     images_ad_sl = np.array(images_ad_sl)
-    images_ctrl_sl = slicing(images_ctrl, 11, 108, 12, 132)
+    images_ctrl_sl = parallelepiped(images_ctrl, 11, 108, 12, 132)
     images_ctrl_sl = np.array(images_ctrl_sl)
     #If you want to see the 3D brain obtained from slicing put mask=1 in slicing and run above
     '''
@@ -112,9 +112,9 @@ if __name__=="__main__":
     print(mean_mask_m.shape)
     glass_brain(mean_mask_m, 0.3, 3)
     '''
-    #Converts a class vector (integers) to binary class matrix with to_categorical
-    labels, names_ad_ctrl = lab_names(names_ctrl, names_ad, images_ad, images_ctrl)
-    categorical_labels = to_categorical(labels)
+    #Create labels and names
+    labels, names_ad_ctrl = lab_names(names_ctrl, names_ad, images_ctrl, images_ad)
+
     #Reshape image to feed the network
     images = []
     images.extend(images_ctrl_sl)
