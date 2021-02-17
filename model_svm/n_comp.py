@@ -30,6 +30,7 @@ def n_comp(data, percentage):
 
     '''
     pca = PCA(percentage)
+    pca.fit_transform(data)
     c_n = pca.n_components_
     return c_n
 

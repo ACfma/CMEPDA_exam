@@ -30,17 +30,18 @@ def confusion_matrix(test_x, test_y, classifier):
     c_matrix.
 
     '''
-    preds = classifier.predict(test_x)
-    preds = np.argmax(np.round(preds),axis=1)
-    score_y= np.argmax(np.round(test_y),axis=1)
-    correct = np.where(preds==score_y)[0]
+    preds = np.round(classifier.predict(test_x))
+    preds_y = []
+    for i in range (len(preds)):
+        preds_y.extend(preds[i])
+    preds_y=np.array(preds_y)
+    correct = np.where(preds_y==test_y)[0]
     print("Found %d correct labels" % len(correct))
-
-    data = {'y_Actual': score_y,'y_Predicted': preds}
-    plt.figure('model.png')
+    fig, ax = plt.subplots()
+    data = {'y_Actual': test_y,'y_Predicted': preds_y}
     d_frame = pd.DataFrame(data, columns=['y_Actual','y_Predicted'])
     c_matrix = pd.crosstab(d_frame['y_Actual'], d_frame['y_Predicted'],\
                                    rownames=['Actual'], colnames=['Predicted'])
     sn.heatmap(c_matrix, annot=True)
     plt.show()
-    return c_matrix
+    return fig, ax

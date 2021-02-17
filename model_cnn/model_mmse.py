@@ -31,13 +31,13 @@ def plot_mmse_prediction(table, test_names, classifier, test_x):
         Sperman Rank.
 
     '''
-    df = pd.read_table(table)
+    csv_table = pd.read_table(table)
     mmse = []
     data = []
     for j in test_names:
-        for i,k in enumerate(df['ID'].values):
+        for i,k in enumerate(csv_table['ID'].values):
             if k + '.' in j:
-                mmse.append(df['MMSE'].values[i])
+                mmse.append(csv_table['MMSE'].values[i])
                 if 'AD' in k:
                     data.append(True)
                 else:
@@ -45,11 +45,11 @@ def plot_mmse_prediction(table, test_names, classifier, test_x):
 
     data = np.array(data)
     mmse = np.array(mmse)
-    distances = classifier.predict(test_x)
+    prediction = classifier.predict(test_x)
     plt.figure()
-    plt.scatter(mmse[data == True], distances[:,1][data == True],\
+    plt.scatter(mmse[data == True], prediction[data == True],\
                 facecolors='none', edgecolors='g')
-    plt.scatter(mmse[data == False], distances[:,1][data == False],\
+    plt.scatter(mmse[data == False], prediction[data == False],\
                 facecolors='none', edgecolors='b')
     plt.xlabel('MMSE')
     plt.ylabel('Model predict')
@@ -57,7 +57,7 @@ def plot_mmse_prediction(table, test_names, classifier, test_x):
     plt.legend(['AD', 'CTRL'],loc="upper left")
     plt.grid()
 
-    spr_rank = spearmanr(mmse,distances[:,1])
+    spr_rank = spearmanr(mmse,prediction)
     return spr_rank
 
 if __name__ == "__main__":

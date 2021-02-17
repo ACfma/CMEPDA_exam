@@ -4,14 +4,6 @@ model\_svm package
 Submodules
 ----------
 
-model\_svm.model\_svm module
-----------------------------
-
-.. automodule:: model_svm.model_svm
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 model\_svm.brain\_animation module
 ----------------------------------
 
@@ -44,6 +36,14 @@ model\_svm.mean\_mask module
    :undoc-members:
    :show-inheritance:
 
+model\_svm.model\_svm module
+----------------------------
+
+.. automodule:: model_svm.model_svm
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 model\_svm.n\_comp module
 -------------------------
 
@@ -51,7 +51,6 @@ model\_svm.n\_comp module
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 model\_svm.roc\_cv module
 -------------------------
