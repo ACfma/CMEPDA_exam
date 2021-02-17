@@ -24,9 +24,9 @@ def roc_cv(x_in, y_in, classifier, cvs):
     Returns
     -------
     fig : matplotlib.Figure
-        Figure object, None if the classifier desn't fit the function'
+        Figure object, None if the classifier doesn't fit the function
     axs : AxesSubplot
-        Axis object, None if the classifier desn't fit the function
+        Axis object, None if the classifier doesn't fit the function
     '''
     tprs = []
     aucs = []
