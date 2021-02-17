@@ -247,11 +247,15 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, c_r, selector_r=None, random_s
         diag = fit_p.explained_variance_ratio_
         indx = np.where(diag == np.max(diag))[0][0]
         feat = abs(fit_p.components_)[indx, :]
+        start_int = perf_counter()
         n_feat_r = int(input("Insert number of retained features:"))
+        logging.info('Time of interaction:{} s'.format(perf_counter() - start_int))
         sort_feat = np.sort(feat)[0:n_feat_r]
         support = np.in1d(feat, sort_feat)
     elif selector_r == 'RFE':
+        start_int = perf_counter()
         step = float(input("Insert step for RFE:"))
+        logging.info('Time of interaction:{} s'.format(perf_counter() - start_int))
         rfe = RFE(estimator=classifier_r, n_features_to_select=features_r, step=step)
         fit_r = rfe.fit(x_in, y_in)
         support = fit_r.support_
@@ -344,12 +348,14 @@ def new_data(x_in, y_in, test_set_data, test_set_lab, support, pos_vox_r, shape_
     sns.heatmap(m_conf.reshape(2,2), annot=True, xticklabels = ['AD', 'CTRL'],
                 yticklabels = ['AD', 'CTRL'])
     plt.show(block = False)
+    start_mat = perf_counter()
     zero_m = np.zeros(shape_r)
     pos_1 = pos_vox_r[0][support]
     pos_2 = pos_vox_r[1][support]
     pos_3 = pos_vox_r[2][support]
     for i, _ in enumerate(pos_1):
         zero_m[pos_1[i], pos_2[i], pos_3[i]] = ranking[i]
+    logging.info("Matrix building time: {}".format(perf_counter()-start_mat))
     return test_x, test_y, fitted_classifier, zero_m
 
 
@@ -408,7 +414,7 @@ if __name__ == "__main__":
     START = perf_counter()#Start the system timer
     SUBJ = glob.glob(os.path.join(PATH, FILES))
     AD_IMAGES, AD_NAMES, CTRL_IMAGES, CTRL_NAMES = thread_pool(SUBJ)
-    print("Time: {}".format(perf_counter()-START))#Print performance time
+    print("Import time: {}".format(perf_counter()-START))#Print performance time
     # parser = argparse.ArgumentParser(
     #       description="Analyze your data using different kind of SVC with linear\
     #           kernel and reduction of features")
@@ -424,7 +430,7 @@ if __name__ == "__main__":
 
     # AD_IMAGES, AD_NAMES, CTRL_IMAGES, CTRL_NAMES = thread_pool(SUBJ)
 
-    # print("Time: {}".format(perf_counter()-START))#Print performance time
+    # print("Import time: {}".format(perf_counter()-START))#Print performance time
 
     ANIM = brain_animation(sitk.GetArrayViewFromImage(CTRL_IMAGES[0]), 50, 100)
     plt.show(block=False)
@@ -434,7 +440,7 @@ if __name__ == "__main__":
     MEAN_MASK = mean_mask(IMAGES, len(CTRL_IMAGES), overlap=0.97)
     POS_VOX = np.where(MEAN_MASK == 1)
 #%%Select only the elements of the mask in all the images arrays
-    start_glob = process_time()
+    start_glob = perf_counter()
     DATASET = vectorize_subj(IMAGES, MEAN_MASK)
 #%% Making labels
     LABELS, NAMES = lab_names(CTRL_IMAGES, AD_IMAGES, CTRL_NAMES, AD_NAMES)
@@ -446,28 +452,27 @@ if __name__ == "__main__":
     CLASS = input("Select Classifier between 'SVC' or 'SGD':")
     FEATURES_PCA = np.empty(0, dtype=int)
     FEATURES_RFE = np.empty(0, dtype=int)
-    C = np.array([0.0001])
+    C = np.array([0.0001, 0.001, 0.01, 1, 10, 100])
     STAND_X = StandardScaler().fit_transform(X)
-    start_pca_box = process_time()
+    start_pca_box = perf_counter()
     plt.figure()
     FIG = cum_explained_variance(STAND_X)
     plt.show(block=False)
-    PERC = [0.20, 0.40, 0.50]
-    QUEST = input("Do you want to use the number of PCAs at 60-70-80-85-90-95%?(Yes/No)")
-    if QUEST == 'Yes':
-        for item in PERC:
-            FEATURES_PCA = np.append(FEATURES_PCA, n_comp(STAND_X, item))
-    elif QUEST == 'No':
-        CONT = 0
-        NUM = input("Insert PCA feature n{} (ends with 'stop'):".format(CONT))
-        while NUM!='stop':
-            np.append(FEATURES_PCA, int(NUM))
-            CONT = CONT+1
-            NUM = input("Insert PCA components n{} (ends with 'stop'):".format(
-                                                                   CONT))
-    else:
-        logging.warning('Your selection was invalid')
-    SELECTOR = 'PCA'
+    PERC = [0.20, 0.40, 0.60, 0.80, 0.85, 0.90, 0.95]
+    # QUEST = input("Do you want to use the number of PCAs at 60-70-80-85-90-95%?(Yes/No)")
+    # if QUEST == 'Yes':
+    for item in PERC:
+        FEATURES_PCA = np.append(FEATURES_PCA, n_comp(STAND_X, item))
+    # elif QUEST == 'No':
+    #     CONT = 0
+    #     NUM = input("Insert PCA feature n{} (ends with 'stop'):".format(CONT))
+    #     while NUM!='stop':
+    #         np.append(FEATURES_PCA, int(NUM))
+    #         CONT = CONT+1
+    #         NUM = input("Insert PCA components n{} (ends with 'stop'):".format(
+    #                                                                CONT))
+    # else:
+    #     logging.warning('Your selection was invalid')
 
     BEST_N_PCA, CS_PCA, FIG_PCA = rfe_pca_boxplot(STAND_X, Y, CLASS,
                                                   FEATURES_PCA, C,
@@ -479,19 +484,19 @@ if __name__ == "__main__":
                                                                       CONT))
 
     plt.show(block=False)
-    print("PCA boxplot's time: {}".format(process_time()-start_pca_box))
-    start_rfe_box = process_time()
+    print("PCA boxplot's time: {}".format(perf_counter()-start_pca_box))
+    start_rfe_box = perf_counter()
     # while(NUM!='stop'):
     #     FEATURES_RFE = np.append(FEATURES_RFE, int(NUM))
     #     CONT = CONT+1
     #     NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(CONT))
-    FEATURES_RFE = np.array([500000])
+    FEATURES_RFE = np.array([500000, 300000, 100000, 50000, 10000, 5000])
     BEST_N_RFE, CS_RFE, FIG_RFE = rfe_pca_boxplot(STAND_X, Y, CLASS,
                                                   FEATURES_RFE, C,
                                                   selector_s='RFE',
                                                   figure=True)
     plt.show(block=False)
-    print("RFE boxplot's time: {}".format(process_time()-start_rfe_box))
+    print("RFE boxplot's time: {}".format(perf_counter()-start_rfe_box))
 #%%
     #PATH = args.testpath
     PATH = os.path.abspath('IMAGES/test_set')
@@ -503,10 +508,11 @@ if __name__ == "__main__":
     TEST_SET_DATA = vectorize_subj(IMAGES, MEAN_MASK)
     TEST_SET_LAB, TEST_NAMES = lab_names(CTRL_IMAGES, AD_IMAGES,
                                          CTRL_NAMES, AD_NAMES)
-    start_pca_fred = process_time()
+    start_pca_fred = perf_counter()
     N_COMP = BEST_N_PCA
     N_FEAT = BEST_N_RFE
     SHAPE = MEAN_MASK.shape
+    logging.basicConfig(level=logging.INFO)
     print("Fitting PCA...")
     SUPPORT_PCA, CLASSIFIER_PCA = rfe_pca_reductor(X, Y, CLASS, BEST_N_PCA, CS_PCA, 'PCA')
     TEST_X_PCA, TEST_Y_PCA, FITTED_CLASSIFIER_PCA, M_PCA = new_data(X, Y,
@@ -517,8 +523,8 @@ if __name__ == "__main__":
                                                              CLASS)
     plt.title('Confusion matrix obtained with PCA')
     print('Fit-reduction processing time for PCA: {}'.format(
-                                                process_time()-start_pca_fred))
-    start_rfe_fred = process_time()
+                                                perf_counter()-start_pca_fred))
+    start_rfe_fred = perf_counter()
     print("Fitting RFE...")
     SUPPORT_RFE, CLASSIFIER_RFE = rfe_pca_reductor(X, Y, CLASS,BEST_N_RFE, CS_RFE, 'RFE')
     TEST_X_RFE, TEST_Y_RFE, FITTED_CLASSIFIER_RFE, M_RFE = new_data(X, Y,
@@ -529,9 +535,9 @@ if __name__ == "__main__":
                                                              CLASS)
     plt.title('Confusion matrix obtained with RFE')
     print('Fit-reduction processing time for RFE: {}'.format(
-                                                process_time()-start_rfe_fred))
+                                                perf_counter()-start_rfe_fred))
 
-    print('Total processing time: {}'.format(process_time()-start_glob))
+    print('Total processing time: {}'.format(perf_counter()-start_glob))
     FIG, AXS = plt.subplots()
     plt.title('Best features found from PCA and RFE')
     AXS.imshow(MEAN_MASK[SHAPE[0]//2, :, :], cmap='Greys_r')
