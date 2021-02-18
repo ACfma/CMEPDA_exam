@@ -5,7 +5,7 @@ import os
 import sys
 import argparse
 import glob
-from time import perf_counter, process_time
+from time import perf_counter
 import logging
 
 import numpy as np
@@ -327,25 +327,20 @@ def new_data(x_in, y_in, test_set_data, test_set_lab, support, pos_vox_r, shape_
     test_y = np.array(test_set_lab)
     #Resume
     scores = []
-    confusion = []
     for _, test in KFold(
         n_splits=5, shuffle = True, random_state=random_state).split(test_x, test_y):
-        y_pred = fitted_classifier.predict(test_x[test])
-        conf = confusion_matrix(test_y[test], y_pred, labels=[-1,1]).ravel()
-        confusion.append(conf)
         scores.append(fitted_classifier.score(test_x[test], test_y[test]))
 
+    y_pred = fitted_classifier.predict(test_x)
+    conf = confusion_matrix(test_y, y_pred, labels=[-1,1]).ravel()
     scores = np.array(scores)
-    confusion = np.array(confusion)
-    m_conf = np.mean(confusion, axis = 0)
-    sd_conf = np.std(confusion, axis = 0)
     print('Accuracy = {} +/- {}'.format(scores.mean(), scores.std()))
-    print('tn = {} +/- {}'.format(m_conf[0], sd_conf[0]))
-    print('fp = {} +/- {}'.format(m_conf[1], sd_conf[1]))
-    print('fn = {} +/- {}'.format(m_conf[2], sd_conf[2]))
-    print('tp = {} +/- {}'.format(m_conf[3], sd_conf[3]))
+    print('tn = {}'.format(conf[0]))
+    print('fp = {}'.format(conf[1]))
+    print('fn = {}'.format(conf[2]))
+    print('tp = {}'.format(conf[3]))
     plt.figure()
-    sns.heatmap(m_conf.reshape(2,2), annot=True, xticklabels = ['AD', 'CTRL'],
+    sns.heatmap(conf.reshape(2,2), annot=True, xticklabels = ['AD', 'CTRL'],
                 yticklabels = ['AD', 'CTRL'])
     plt.show(block = False)
     start_mat = perf_counter()
@@ -409,6 +404,8 @@ def spearmanr_graph(df_s, test_x, test_names_s, fitted_classifier):
     print(rank)
     return fig_s, rank
 if __name__ == "__main__":
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
     PATH = os.path.abspath('IMAGES/train_set')#Put the current path
     FILES = '*.nii'#find all nifti files with .nii in the name
     START = perf_counter()#Start the system timer
@@ -432,8 +429,8 @@ if __name__ == "__main__":
 
     # print("Import time: {}".format(perf_counter()-START))#Print performance time
 
-    ANIM = brain_animation(sitk.GetArrayViewFromImage(CTRL_IMAGES[0]), 50, 100)
-    plt.show(block=False)
+    # ANIM = brain_animation(sitk.GetArrayViewFromImage(CTRL_IMAGES[0]), 50, 100)
+    # plt.show(block=False)
 #%% Try edge detection for mask
     IMAGES = CTRL_IMAGES.copy()
     IMAGES.extend(AD_IMAGES.copy())
@@ -452,7 +449,7 @@ if __name__ == "__main__":
     CLASS = input("Select Classifier between 'SVC' or 'SGD':")
     FEATURES_PCA = np.empty(0, dtype=int)
     FEATURES_RFE = np.empty(0, dtype=int)
-    C = np.array([0.0001, 0.001, 0.01, 1, 10, 100])
+    C = np.array([0.001, 0.01, 0.1, 1, 10])
     STAND_X = StandardScaler().fit_transform(X)
     start_pca_box = perf_counter()
     plt.figure()
@@ -478,7 +475,7 @@ if __name__ == "__main__":
                                                   FEATURES_PCA, C,
                                                   selector_s='PCA',
                                                   figure=True)
-
+    print("Best number of PC: {}".format(BEST_N_PCA))
     CONT = 0
     NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(
                                                                       CONT))
@@ -497,6 +494,7 @@ if __name__ == "__main__":
                                                   figure=True)
     plt.show(block=False)
     print("RFE boxplot's time: {}".format(perf_counter()-start_rfe_box))
+    print("Best retained features from RFE: {}".format(BEST_N_RFE))
 #%%
     #PATH = args.testpath
     PATH = os.path.abspath('IMAGES/test_set')
@@ -509,12 +507,10 @@ if __name__ == "__main__":
     TEST_SET_LAB, TEST_NAMES = lab_names(CTRL_IMAGES, AD_IMAGES,
                                          CTRL_NAMES, AD_NAMES)
     start_pca_fred = perf_counter()
-    N_COMP = BEST_N_PCA
-    N_FEAT = BEST_N_RFE
+
     SHAPE = MEAN_MASK.shape
-    logging.basicConfig(level=logging.INFO)
     print("Fitting PCA...")
-    SUPPORT_PCA, CLASSIFIER_PCA = rfe_pca_reductor(X, Y, CLASS, BEST_N_PCA, CS_PCA, 'PCA')
+    SUPPORT_PCA, CLASSIFIER_PCA = rfe_pca_reductor(X, Y, CLASS, 70, 0.0001, 'PCA')
     TEST_X_PCA, TEST_Y_PCA, FITTED_CLASSIFIER_PCA, M_PCA = new_data(X, Y,
                                                              TEST_SET_DATA,
                                                              TEST_SET_LAB,
@@ -526,7 +522,7 @@ if __name__ == "__main__":
                                                 perf_counter()-start_pca_fred))
     start_rfe_fred = perf_counter()
     print("Fitting RFE...")
-    SUPPORT_RFE, CLASSIFIER_RFE = rfe_pca_reductor(X, Y, CLASS,BEST_N_RFE, CS_RFE, 'RFE')
+    SUPPORT_RFE, CLASSIFIER_RFE = rfe_pca_reductor(X, Y, CLASS,50000, 0.0001, 'RFE')
     TEST_X_RFE, TEST_Y_RFE, FITTED_CLASSIFIER_RFE, M_RFE = new_data(X, Y,
                                                              TEST_SET_DATA,
                                                              TEST_SET_LAB,
@@ -575,12 +571,85 @@ if __name__ == "__main__":
     FIG_RFE, RANK_RFE = spearmanr_graph(DFM, TEST_X_RFE, TEST_NAMES, FITTED_CLASSIFIER_RFE)
     plt.show(block=False)
 #%%
+    def roc_cv_trained(x_in, y_in, classifier, cvs):
+        '''
+        roc_cv_trained plots a mean roc curve with standard deviation along with mean auc\
+         given a classifier and a cv-splitter using matplotlib.
+        This version will assume the input classifier as already fitted. 
+        
+        Parameters
+        ----------
+        x_in : ndarray or list
+            Data to be predicted (n_samples, n_features)
+        y_in : ndarray or list
+            Labels (n_samples)
+        classifier : estimator
+            Estimator to use for the classification
+        cvs : model selector
+            Selector used for cv splitting
+        
+        Returns
+        -------
+        fig : matplotlib.Figure
+            Figure object, None if the classifier doesn't fit the function
+        axs : AxesSubplot
+            Axis object, None if the classifier doesn't fit the function
+        '''
+        from sklearn.metrics import roc_curve, auc
+        tprs = []
+        aucs = []
+        mean_fpr = np.linspace(0, 1, 100)#Needed for roc curve
+        fig, axs = plt.subplots()
+        #Here I calcoulate a lot of roc and append it to the list of resoults
+        for _, test in cvs.split(x_in, y_in):
+            try:
+                probs = classifier.predict_proba(x_in[test])[:,1]
+            except:
+                try:
+                    probs = classifier.decision_function(x_in[test])
+                except:
+                    print("No discriminating function has been\
+                          found for your model.")
+                    return None, None
+            fpr, tpr, _ = roc_curve(y_in[test], probs)
+            interp_tpr = np.interp(mean_fpr, fpr, tpr)
+            interp_tpr[0] = 0.0
+            tprs.append(interp_tpr)
+            aucs.append(auc(fpr, tpr))
+        #Plotting the base option
+        axs.plot([0, 1], [0, 1], linestyle='--', lw=2, color='r',
+            label='Coin Flip', alpha=.8)
+        #Calculate mean and std
+        mean_tpr = np.mean(tprs, axis=0)
+        mean_tpr[-1] = 1.0
+        mean_auc = np.mean(aucs)
+        std_auc = np.std(aucs)
+        axs.plot(mean_fpr, mean_tpr, color='b',
+                label=r'Mean ROC (AUC = {:.2f} $\pm$ {:.2f})'.format(mean_auc,
+                                                                     std_auc),
+                lw=2, alpha=.8)
+        std_tpr = np.std(tprs, axis=0)
+        tprs_upper = np.minimum(mean_tpr + std_tpr, 1)
+        tprs_lower = np.maximum(mean_tpr - std_tpr, 0)
+        axs.fill_between(mean_fpr, tprs_lower, tprs_upper, color='grey', alpha=.2,
+                        label=r'$\pm$ 1 std. dev.')
+        
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('Cross-Validation ROC of fitted SVM (using the whole test set)')
+        plt.legend(loc="lower right")
+        plt.show()
+        return fig, axs
     N_SPLITS = 5
     X, Y = TEST_X_PCA, TEST_Y_PCA
     CVS = RepeatedStratifiedKFold(n_splits=N_SPLITS, n_repeats=3, random_state=42)
     FIG, AXS = roc_cv(X, Y, CLASSIFIER_PCA, CVS)
     plt.show(block=False)
+    FIG, AXS = roc_cv_trained(X, Y, FITTED_CLASSIFIER_PCA, CVS)
+    plt.show(block=False)
     X, Y = TEST_X_RFE, TEST_Y_RFE
     CVS = RepeatedStratifiedKFold(n_splits=N_SPLITS, n_repeats=3, random_state=42)
     FIG, AXS = roc_cv(X, Y, CLASSIFIER_RFE, CVS)
+    plt.show(block=False)
+    FIG, AXS = roc_cv_trained(X, Y, FITTED_CLASSIFIER_RFE, CVS)
     plt.show(block=False)
