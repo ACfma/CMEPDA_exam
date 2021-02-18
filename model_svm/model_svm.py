@@ -510,7 +510,7 @@ if __name__ == "__main__":
 
     SHAPE = MEAN_MASK.shape
     print("Fitting PCA...")
-    SUPPORT_PCA, CLASSIFIER_PCA = rfe_pca_reductor(X, Y, CLASS, 70, 0.0001, 'PCA')
+    SUPPORT_PCA, CLASSIFIER_PCA = rfe_pca_reductor(X, Y, CLASS, BEST_N_PCA, CS_PCA, 'PCA')
     TEST_X_PCA, TEST_Y_PCA, FITTED_CLASSIFIER_PCA, M_PCA = new_data(X, Y,
                                                              TEST_SET_DATA,
                                                              TEST_SET_LAB,
@@ -522,7 +522,7 @@ if __name__ == "__main__":
                                                 perf_counter()-start_pca_fred))
     start_rfe_fred = perf_counter()
     print("Fitting RFE...")
-    SUPPORT_RFE, CLASSIFIER_RFE = rfe_pca_reductor(X, Y, CLASS,50000, 0.0001, 'RFE')
+    SUPPORT_RFE, CLASSIFIER_RFE = rfe_pca_reductor(X, Y, CLASS, BEST_N_RFE, CS_RFE, 'RFE')
     TEST_X_RFE, TEST_Y_RFE, FITTED_CLASSIFIER_RFE, M_RFE = new_data(X, Y,
                                                              TEST_SET_DATA,
                                                              TEST_SET_LAB,
