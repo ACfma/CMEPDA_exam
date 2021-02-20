@@ -440,7 +440,7 @@ def roc_cv_trained(x_in, y_in, classifier, cvs):
         aucs.append(auc(fpr, tpr))
     #Plotting the base option
     axs.plot([0, 1], [0, 1], linestyle='--', lw=2, color='r',
-        label='Coin Flip', alpha=.8)
+        label='Base line', alpha=.8)
     #Calculate mean and std
     mean_tpr = np.mean(tprs, axis=0)
     mean_tpr[-1] = 1.0
@@ -568,7 +568,7 @@ if __name__ == "__main__":
     TEST_SET_DATA, TEST_SET_LAB, TEST_NAMES = shuffle(DATA, LAB, NMS,
                                                          random_state=42)
     start_pca_fred = perf_counter()
-    STAND_X_TRAIN = StandardScaler().fit_transform(X)
+    STAND_X_TRAIN = STAND_X
     STAND_X_TEST = StandardScaler().fit_transform(TEST_SET_DATA)
     SHAPE = MEAN_MASK.shape
     CLASS = input("What classifier do you want to test on the reduced dataset: 'SVC' or 'SGD'?")
@@ -600,13 +600,6 @@ if __name__ == "__main__":
 
     print('Total processing time: {}'.format(perf_counter()-start_glob))
 
-    FIG, AXS = plt.subplots()
-    plt.title('Best features found from PCA and RFE')
-    AXS.imshow(MEAN_MASK[SHAPE[0]//2, :, :], cmap='Greys_r')
-    AXS.imshow(M_PCA[SHAPE[0]//2, :, :], alpha=0.6, cmap='RdGy_r')
-    AXS.imshow(M_RFE[SHAPE[0]//2, :, :], alpha=0.4, cmap='gist_gray')
-    plt.show(block=False)
-
 
     mask_PCA = np.where(M_PCA>0,1,0)
     mask_RFE = np.where(M_RFE>0,1,0)
@@ -632,7 +625,7 @@ if __name__ == "__main__":
     DFM = pd.read_table(CSV_PATH)
     FIG_PCA, RANK_PCA = spearmanr_graph(DFM, TEST_X_PCA, TEST_NAMES, FITTED_CLASSIFIER_PCA)
     FIG_RFE, RANK_RFE = spearmanr_graph(DFM, TEST_X_RFE, TEST_NAMES, FITTED_CLASSIFIER_RFE)
-
+#%%
     N_SPLITS = 5
     CVS = RepeatedStratifiedKFold(n_splits=N_SPLITS, n_repeats=3, random_state=42)
     FIG, AXS = roc_cv_trained(TEST_X_PCA, TEST_Y_PCA, FITTED_CLASSIFIER_PCA, CVS)
