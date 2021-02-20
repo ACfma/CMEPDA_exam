@@ -72,5 +72,5 @@ def roc_cv(x_in, y_in, classifier, cvs):
     plt.ylabel('True Positive Rate')
     plt.title('Cross-Validation ROC of SVM')
     plt.legend(loc="lower right")
-    plt.show()
+    plt.show(block=False)
     return fig, axs
