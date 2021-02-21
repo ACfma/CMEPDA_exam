@@ -15,7 +15,7 @@ def glass_brain(data, opacity, surface_count):
 
     Parameters
     ----------
-    data : ndarray
+    data : array
         3D array of data to rapresent.
     opacity : float
         Sets the opacity of the surface. Opacity level over 0.25 could perform\

@@ -1,6 +1,7 @@
 '''model_svm uses SVM with PCA and RFE reductions in order to analyze the \
- most important features considering an ensable of images. The resoults will be\
- saved as nifti images in a new (or already existing) folder named 'Masks'.'''
+most important features considering an ensable of images. The masks of these \
+features will be saved as nifti images in a new (or already existing) \
+folder named 'Masks'.'''
 import os
 import sys
 import argparse
@@ -26,6 +27,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import roc_curve, auc
 
+#brain_animation and glass_brain display only a different view of the dataset 
+#not closely necessary for the analysis
 
 sys.path.insert(0, os.path.abspath(''))
 from model_svm.thread_pool import thread_pool
@@ -39,19 +42,19 @@ from model_svm.n_comp import n_comp
 
 def vectorize_subj(images_in, mask):
     '''
-    vectorize_subj return a two dimentional array of given set of images in /
-    which every line correspond to an image and every row to a voxel selected /
-    by the mask used.
+    vectorize_subj return a two dimentional array of given set of images in \
+    which every line correspond to an image and every row to a voxel selected \
+    by the selected mask.
 
     Parameters
     ----------
-    images_in: ndarray or list
+    images_in: array or list
         List of images to use.
-    mask: ndarray
+    mask: array
         Mask to apply.
     Returns
     -------
-    Return a two-dimentional ndarray with shape (n_images, n_selected_voxel)
+    Return a two-dimentional array with shape (n_images, n_selected_voxel)
     '''
     vectors = []
     for item in images_in:
@@ -75,9 +78,9 @@ def lab_names(ctrl_images_in, ad_images_in, ctrl_names_in, ad_names_in):
         Paths of AD.
     Returns
     -------
-    labels_out : ndarray
+    labels_out : array
         Array of labels.
-    names_out : ndarray
+    names_out : array
         Array of paths to file with the same order as labels.
     '''
     lab_1 = -np.ones(len(ctrl_images_in), dtype=int)
@@ -89,24 +92,24 @@ def lab_names(ctrl_images_in, ad_images_in, ctrl_names_in, ad_names_in):
 def rfe_pca_boxplot(x_in, y_in, clf, features_s, c_in, selector_s=None,
                     n_splits_k=5, n_repeats=2, figure=True, random_state=42):
     '''
-    rfe_pca_reductor is an iterator over a given dataset that\
-     tests an confronts your estimator using roc_auc.
-    The function support feature reduction based on RFE or PCA and make the\
-     classification based on SGD or SVC both using a linear kernel.
+    rfe_pca_reductor is an iterator over a given dataset that \
+    tests an confronts your estimator using roc_auc.
+    The function supports feature reduction based on RFE or PCA and make the \
+    classification based on SGD or SVC, both using a linear kernel.
 
     Parameters
     ----------
-    x_in : ndarray
+    x_in : array
         Array of dimension (n_samples, n_features)
-    y_in : ndarray
+    y_in : array
         Array of dimension (n_samples,)
     clf : string
-        Estimator used as classificator. Type 'SVC' for the standard SVM with\
-         linear kernel or type 'SGD' for implementig the
-          Stochastic Gradient Descend on SVC.
-    features_s : ndarray
+        Estimator used as classificator. Type 'SVC' for the standard SVM with \
+        linear kernel or type 'SGD' for implementig the \
+        Stochastic Gradient Descend on SVC.
+    features_s : array
         Array containing the number of feature to select.
-    c_in : ndarray
+    c_in : array
         Array containing the C-value for SVM.
     selector_s: string, optional
         Strategy to follow in order to select the most important features.
@@ -119,14 +122,14 @@ def rfe_pca_boxplot(x_in, y_in, clf, features_s, c_in, selector_s=None,
         Whatever to print or not the boxplot of the resoults.
         The default is True.
     random_state : int, optional
-        Random state to give to all the function that necessitate it,\
-         implemeted for repetibility sake. Default it's 42.
+        Random state to give to all the function that requires it.
+        Default it's 42.
     Returns
     -------
     best_n : int
         Optimal number of feature
     best_c : float
-        Optimal C for the feature
+        Optimal C-value for the feature
     fig : matplotlib.Figure, optional
         If 'figure = True' returns the figure object of the boxplot.
     '''
@@ -139,14 +142,18 @@ def rfe_pca_boxplot(x_in, y_in, clf, features_s, c_in, selector_s=None,
     else:
         logging.error("The selected classifier doesn't belong to the options.")
         return None, None, None
+    #Defining a model for any possible combinations.
     if selector_s is None:
         models = [classifier_s]
     elif selector_s == 'RFE':
+        start_int = perf_counter()
         step = float(input("Select step for RFE:"))
+        logging.info('Time of interaction:{} s'.format(perf_counter() - start_int))
         models = [Pipeline(steps=[
             ('s', RFE(estimator=classifier_s, n_features_to_select=f, step=step)),
             ('m', classifier_s)]) for f in features_s]
     elif selector_s == 'PCA':
+        #if 'PCA' has been selected the maximun number of PCs is limited by k-fold.
         f_max = (x_in.shape[0]*((n_splits_k-1)/n_splits_k)-(n_splits_k-1))
         if any(features_s>f_max):
             logging.warning('One or more of your input PC is out of range.\n\
@@ -161,6 +168,7 @@ def rfe_pca_boxplot(x_in, y_in, clf, features_s, c_in, selector_s=None,
     best_cs = []
     scores = []
     for model in models:
+        #modifing C-value according to the type of the classifier.
         if clf == 'SGD':
             param_grid = {
                 'm__alpha': 1/(c_in*x_in.shape[0])
@@ -169,6 +177,7 @@ def rfe_pca_boxplot(x_in, y_in, clf, features_s, c_in, selector_s=None,
             param_grid = {
                 'm__C': c_in
             }
+        #Exaustive search between the options.
         search = GridSearchCV(model, param_grid, scoring='roc_auc', n_jobs=-1)
         search.fit(x_in, y_in)
         param = list(param_grid.keys())[0]
@@ -181,7 +190,7 @@ def rfe_pca_boxplot(x_in, y_in, clf, features_s, c_in, selector_s=None,
         best_cs.append(c_in[search.best_index_])
         print('Done {}'.format(model))
 
-    #Used median becouse less dependant from outlier
+    #Used median becouse less dependant from outliers.
     median_s = [np.median(score) for score in scores]
     index = median_s.index(max(median_s))
     best_n_f = features_s[index]
@@ -199,15 +208,15 @@ def rfe_pca_boxplot(x_in, y_in, clf, features_s, c_in, selector_s=None,
 
 def rfe_pca_reductor(x_in, y_in, clf, features_r, c_r, selector_r=None, random_state=42):
     '''
-    rfe_pca_reductor will create a support matrix for reproducing best\
+    rfe_pca_reductor will create a support matrix for reproducing best \
     features found. \n
     The images must be three dimensional.
 
     Parameters
     ----------
-    x_in : ndarray
+    x_in : array
         Training set of data. Must be 2D array.
-    y_in : ndarray
+    y_in : array
         Training set of labels. Must be 2D array.
     clf : str
         Selected classifier between 'SGD' and 'SVC'.
@@ -216,14 +225,13 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, c_r, selector_r=None, random_s
     cs : float
         Selected c for model.
     selector_r : str, optional
-        Selector of features choosen between 'PCA' or 'RFE'. The default is\
-         None.
+        Selector of features choosen between 'PCA' or 'RFE'. The default is None.
     random_state : int
         Choose random state
     Returns
     -------
-    support : ndarray
-        Mask of the best fitting features.
+    support : array
+        2D mask of the best fitting features.
     classifier : classifier
         Selected classifier (as an object).
     '''
@@ -242,15 +250,17 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, c_r, selector_r=None, random_s
         pca = PCA(n_components=features_r, svd_solver='randomized',
                   random_state=random_state)
         fit_p = pca.fit(x_in, y_in)
+        #Selection based on higher explained variances.
         diag = fit_p.explained_variance_ratio_
         indx = np.where(diag == np.max(diag))[0][0]
-        feat = abs(fit_p.components_)[indx, :]
+        feat = fit_p.components_[indx, :]
         start_int = perf_counter()
         n_feat_r = int(input("Insert number of retained features:"))
         logging.info('Time of interaction:{} s'.format(perf_counter() - start_int))
         sort_feat = np.sort(feat)[0:n_feat_r]
         support = np.in1d(feat, sort_feat)
     elif selector_r == 'RFE':
+        #Selection based on RFE ranking.
         start_int = perf_counter()
         step = float(input("Insert step for RFE:"))
         logging.info('Time of interaction:{} s'.format(perf_counter() - start_int))
@@ -264,24 +274,25 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, c_r, selector_r=None, random_s
     #Print performance time
 
     return support, classifier_r
-def new_data(x_in, y_in, test_set_data, test_set_lab, support, pos_vox_r, shape_r,
+
+def new_data(train_set_data, train_set_lab, test_set_data, test_set_lab, support, pos_vox_r, shape_r,
              classifier_n,random_state=42):
     '''
-    new_data allow the reduction of the initial features to the ensamble \
-    defined by the support along with the score of the fitted classifier with \
+    new_data allows the reduction of the initial features to the ensamble \
+    defined by the support vector along with the score of the fitted classifier and \
     the new set of features.
 
     Parameters
     ----------
-    x_in : ndarray
+    train_set_data : array
         Training set of data. Must be a 2D array.
-    y_in : ndarray
+    train_set_lab : array
         Training set of labels. Must be a 2D array.
-    test_set_data : ndarray
+    test_set_data : array
         Test set of data. Must be 2D a array.
-    test_set_lab : ndarray
+    test_set_lab : array
         Test set of labels. Must be 2D a array.
-    support : ndarray
+    support : array
         1D array of selected features.
     pos_vox_r : tuple
         Coordinates of the selected voxel in images.
@@ -293,29 +304,29 @@ def new_data(x_in, y_in, test_set_data, test_set_lab, support, pos_vox_r, shape_
         Select random state. Default it's 42.
     Returns
     -------
-    test_x : ndarray
+    test_x : array
         Reduced test set of data.
-    test_y : ndarray
+    test_y : array
         Reduced test set of labels.
     fitted_classifier : classifier
         Fitted Sklearn classifier object.
-    zero_m : ndarray
+    zero_m : array
         3D Mask of the best fitting features.
     '''
     red_x = []
-    for item in range(x_in.shape[0]):
-        red_x.append(x_in[item, support])
+    for item in range(train_set_data.shape[0]):
+        red_x.append(train_set_data[item, support])
     red_x = np.array(red_x)
-    #Fit the svc with the most important voxels
-    fitted_classifier = classifier_n.fit(red_x, y_in)
+    #Fit the model with the most important voxels
+    fitted_classifier = classifier_n.fit(red_x, train_set_lab)
     ranking = np.abs(fitted_classifier.coef_[0,:])
-    #The same selection need to be done with  the test_X
+    #The same selection need to be done with test set.
     test_x = []
     for item in range(test_set_data.shape[0]):
         test_x.append(test_set_data[item, support])
     test_x = np.array(test_x)
     test_y = np.array(test_set_lab)
-    #Resume
+    #Making mean confusion matrix and accuracy by using a k-fold split.
     scores = []
     confs = []
     CV = RepeatedStratifiedKFold(n_splits=5, n_repeats=3, random_state=42)
@@ -337,6 +348,7 @@ def new_data(x_in, y_in, test_set_data, test_set_lab, support, pos_vox_r, shape_
                 yticklabels = ['CTRL', 'AD'])
     plt.show(block = False)
     start_mat = perf_counter()
+    #Creation of the 3D rapresentation of the most important features.
     zero_m = np.zeros(shape_r)
     pos_1 = pos_vox_r[0][support]
     pos_2 = pos_vox_r[1][support]
@@ -371,7 +383,7 @@ def spearmanr_graph(df_s, test_x, test_names_s, fitted_classifier):
     '''
 
     mmse = []
-    ad_s = []#This will be a mask for the scatter plot
+    ad_s = []
     for j in test_names_s:
         for i, item in enumerate(df_s['ID'].values):
             if item + '.' in j:
@@ -383,6 +395,7 @@ def spearmanr_graph(df_s, test_x, test_names_s, fitted_classifier):
 
     ad_s = np.array(ad_s)
     mmse = np.array(mmse)
+    #Calculation of the distances from the hyperplane.
     distances = fitted_classifier.decision_function(test_x)/np.sqrt(
                 np.sum(np.square(fitted_classifier.coef_)))
     fig_s, ax_s = plt.subplots()
@@ -425,9 +438,8 @@ def roc_cv_trained(x_in, y_in, classifier, cvs):
 
     tprs = []
     aucs = []
-    mean_fpr = np.linspace(0, 1, 100)#Needed for roc curve
+    mean_fpr = np.linspace(0, 1, 100)
     fig, axs = plt.subplots()
-    #Here I calcoulate a lot of roc and append it to the list of resoults
     for _, test in cvs.split(x_in, y_in):
         try:
             probs = classifier.predict_proba(x_in[test])[:,1]
@@ -469,8 +481,9 @@ def roc_cv_trained(x_in, y_in, classifier, cvs):
     return fig, axs
 
 if __name__ == "__main__":
+
     logging.basicConfig(level=logging.INFO, format='%(message)s')
-    PATH = os.path.abspath('IMAGES/train_set')#Put the current path
+    PATH = os.path.abspath('IMAGES/train_set')
     FILES = '*.nii'#find all nifti files with .nii in the name
     START = perf_counter()#Start the system timer
     SUBJ = glob.glob(os.path.join(PATH, FILES))
@@ -495,22 +508,22 @@ if __name__ == "__main__":
 
     # ANIM = brain_animation(sitk.GetArrayViewFromImage(CTRL_IMAGES[0]), 50, 100)
     # plt.show(block=False)
-#%% Try edge detection for mask
+    #%% Application of the mean_mask over study subjects.
     IMAGES = CTRL_IMAGES.copy()
     IMAGES.extend(AD_IMAGES.copy())
     MEAN_MASK = mean_mask(IMAGES, len(CTRL_IMAGES), overlap=0.97)
     #glass_brain(mean_mask, 0.1, 4, True, Zero_M )
     POS_VOX = np.where(MEAN_MASK == 1)
-#%%Select only the elements of the mask in all the images arrays
+    #%% Flattening of the selected features.
     start_glob = perf_counter()
     DATASET = vectorize_subj(IMAGES, MEAN_MASK)
-#%% Making labels
+    #%% Creation of the labels (-1,1).
     LABELS, NAMES = lab_names(CTRL_IMAGES, AD_IMAGES, CTRL_NAMES, AD_NAMES)
-#%%
+    #%% Shuffle of the train set.
     TRAIN_SET_DATA, TRAIN_SET_LAB, TRAIN_NAMES = shuffle(DATASET, LABELS, NAMES,
                                                          random_state=42)
     X, Y = TRAIN_SET_DATA, TRAIN_SET_LAB
-    #%%
+    #%% Boxplot of selected features (given by "best practice" or manually).
     CLASS = input("Select Classifier between 'SVC' or 'SGD':")
     FEATURES_PCA = np.empty(0, dtype=int)
     FEATURES_RFE = np.empty(0, dtype=int)
@@ -530,7 +543,7 @@ if __name__ == "__main__":
     #     CONT = 0
     #     NUM = input("Insert PCA feature n{} (ends with 'stop'):".format(CONT))
     #     while NUM!='stop':
-    #         np.append(FEATURES_PCA, int(NUM))
+    #         FEATURES_PCA = np.append(FEATURES_PCA, int(NUM))
     #         CONT = CONT+1
     #         NUM = input("Insert PCA components n{} (ends with 'stop'):".format(
     #                                                                CONT))
@@ -561,7 +574,8 @@ if __name__ == "__main__":
     plt.show(block=False)
     print("RFE boxplot's time: {}".format(perf_counter()-start_rfe_box))
     print("Best retained features from RFE: {}".format(BEST_N_RFE))
-#%%
+    #%%Application of the trained classifier over test set.
+
     #PATH = args.testpath
     PATH = os.path.abspath('IMAGES/test_set')
     SUBJ = glob.glob(os.path.join(PATH, FILES))
@@ -577,7 +591,9 @@ if __name__ == "__main__":
     STAND_X_TRAIN = STAND_X
     STAND_X_TEST = scaler.transform(TEST_SET_DATA)
     SHAPE = MEAN_MASK.shape
+
     CLASS = input("What classifier do you want to test on the reduced dataset: 'SVC' or 'SGD'?")
+
     print("Fitting PCA...")
     SUPPORT_PCA, CLASSIFIER_PCA = rfe_pca_reductor(STAND_X_TRAIN, Y, CLASS, BEST_N_PCA, CS_PCA, 'PCA')
     TEST_X_PCA, TEST_Y_PCA, FITTED_CLASSIFIER_PCA, M_PCA = new_data(STAND_X_TRAIN, Y,
@@ -591,6 +607,7 @@ if __name__ == "__main__":
     print('Fit-reduction processing time for PCA: {}'.format(
                                                 perf_counter()-start_pca_fred))
     start_rfe_fred = perf_counter()
+
     print("Fitting RFE...")
     SUPPORT_RFE, CLASSIFIER_RFE = rfe_pca_reductor(STAND_X_TRAIN, Y, CLASS, BEST_N_RFE, CS_RFE, 'RFE')
     TEST_X_RFE, TEST_Y_RFE, FITTED_CLASSIFIER_RFE, M_RFE = new_data(STAND_X_TRAIN, Y,
@@ -599,14 +616,14 @@ if __name__ == "__main__":
                                                              SUPPORT_RFE,
                                                              POS_VOX, SHAPE,
                                                              CLASSIFIER_RFE)
-    print("Fitting RFE...")
+
     plt.title('Confusion matrix obtained with RFE')
     print('Fit-reduction processing time for RFE: {}'.format(
                                                 perf_counter()-start_rfe_fred))
 
     print('Total processing time: {}'.format(perf_counter()-start_glob))
 
-
+    #Creating a common mask
     mask_PCA = np.where(M_PCA>0,1,0)
     mask_RFE = np.where(M_RFE>0,1,0)
     sum_MASKS = mask_PCA + mask_RFE
@@ -614,6 +631,7 @@ if __name__ == "__main__":
     M_DICT = {"PCA_mask":M_PCA,
               "RFE_mask":M_RFE,
               "COMMON_mask":M_COM}
+    #Saving masks in a new folder or an existing one named 'Masks'.
     try:
         os.chdir('Masks')
         os.chdir('..')
@@ -625,17 +643,16 @@ if __name__ == "__main__":
         img = sitk.GetImageFromArray(M_DICT[item])
         sitk.WriteImage(img,os.path.join(PATH, '{}.nii'.format(item)))
 
-#%%
+    #%%Spearman rank comparision.
     CSV_PATH = input("Insert full path of your .csv with MMSE classification of\
                      your subjects: ")
     DFM = pd.read_table(CSV_PATH)
     FIG_PCA, RANK_PCA = spearmanr_graph(DFM, TEST_X_PCA, TEST_NAMES, FITTED_CLASSIFIER_PCA)
     FIG_RFE, RANK_RFE = spearmanr_graph(DFM, TEST_X_RFE, TEST_NAMES, FITTED_CLASSIFIER_RFE)
-#%%
+    #%%ROC curves comparision.
     N_SPLITS = 5
     CVS = RepeatedStratifiedKFold(n_splits=N_SPLITS, n_repeats=3, random_state=42)
     FIG, AXS = roc_cv_trained(TEST_X_PCA, TEST_Y_PCA, FITTED_CLASSIFIER_PCA, CVS)
     FIG, AXS = roc_cv(TEST_X_PCA, TEST_Y_PCA, CLASSIFIER_PCA, CVS)
-    CVS = RepeatedStratifiedKFold(n_splits=N_SPLITS, n_repeats=3, random_state=42)
     FIG, AXS = roc_cv_trained(TEST_X_RFE, TEST_Y_RFE, FITTED_CLASSIFIER_RFE, CVS)
     FIG, AXS = roc_cv(TEST_X_RFE, TEST_Y_RFE, CLASSIFIER_RFE, CVS)

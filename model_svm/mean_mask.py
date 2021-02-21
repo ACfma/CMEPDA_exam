@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 """
-mean_mask allows to obtain a mean mask from an array of SimpleITK images.
+mean_mask allows you to obtain a mean mask from an array of SimpleITK images.
 """
 import os
 import glob
@@ -15,7 +14,7 @@ def mean_mask(images, ctrl, overlap = 0.97):
 
     Parameters
     ----------
-    images : list or nd array of SimpleITK.Image
+    images : list or array of SimpleITK.Image
         List of images to be confronted in order to obtain a mean mask.
 
     ctrl : int
@@ -27,7 +26,7 @@ def mean_mask(images, ctrl, overlap = 0.97):
         Must be a float between 0 and 1.
     Returns
     -------
-    m_mean : ndarray
+    m_mean : array
         Array of the same dimension of a single input image.
 
     '''
@@ -53,7 +52,7 @@ if __name__ == "__main__":
     parser.add_argument('-path', help='Path to your files', type=str)
     args = parser.parse_args()
     path = args.path
-    FILES = r"\*.nii" #find all nifti files with .nii in the name
+    FILES = r"\*.nii"
     path = path + FILES
     subj = glob.glob(os.path.normpath(path), recursive=True)
     img = [sitk.ReadImage(subj[0], imageIO = "NiftiImageIO")]

@@ -77,8 +77,8 @@ def thread_pool(sub):
 
 if __name__=="__main__":
 
-    path = os.path.abspath('')#Put the current path
-    FILES = r'\**\*.nii'#find all nifti files with .nii in the name
+    path = os.path.abspath('')
+    FILES = r'\**\*.nii'
     path = path + FILES
     subj = glob.glob(os.path.normpath(path), recursive=True)
 
