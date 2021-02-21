@@ -1,20 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-Tool to create a 3D CNN model
+Example of tool used to create, fit 3D CNN model, and then uses it to
+evaluate test set data in model_cnn.ipynb.
 
 """
 
 from matplotlib import pyplot as plt
 from keras.layers import Conv3D, MaxPooling3D, Dense, Flatten,\
-    BatchNormalization, Dropout, LeakyReLU, InputLayer, Softmax
+    BatchNormalization, Dropout, InputLayer
 from keras.models import Sequential
 
 def model_build(shape):
     '''
     This function returns the model used to classificate
     AD/CTRL subject, it involved differents convolutional
-    layers, pooling layer, fully connected layer and two
-    output with softmax activation.
+    layers, pooling layer, fully connected layer and one
+    output with sigmoid activation.
 
     Parameters
     ----------
@@ -24,7 +25,7 @@ def model_build(shape):
     Returns
     -------
     model : class 'tensorflow.python.keras.\
-            engine.Model'
+            engine.Model.Sequential'
         Model, Convolutional NN.
 
     '''
@@ -40,62 +41,31 @@ def model_build(shape):
         MaxPooling3D((2,2,2), strides=(2,2,2)),
         Conv3D(16, (3,3,3),strides=1, activation = 'relu'),
         BatchNormalization(),
-        Dropout(0.7), 
-        MaxPooling3D((2,2,2), strides=(2,2,2),padding = 'same'),
+        Dropout(0.7),
+        MaxPooling3D((2,2,2), strides=1, padding='same'),
         Flatten(),
-        Dense(32),
-        LeakyReLU(alpha=0.1),
-        Dense(2),
-        Softmax()
+        Dense(32, activation='relu'),
+        Dense(1, activation='sigmoid')
 
     ])
     return model
 
-def model_compiler(model, optimizer, loss, metrics):
+def model_fit(model, train_x, train_y, test_x, test_y, btc_s):
     '''
-    This function returns the model summary and the losses and metrics with
-    model.compile()
-
-    Parameters
-    ----------
-    model : class 'tensorflow.python.keras.\
-            engine.Model'
-        Model, Convolutional NN.
-    optimizer : class 'tensorflow.python.keras.optimizer'
-        select the gradient descent to minimize an objective
-        function parameterized by the model's parameters by updating the
-        parameters in the opposite direction of the gradient of the
-        objective function.
-    loss : str, binary_crossentropy
-        select the loss function to calculate how poorly the model
-        is performing by comparing what the model is predicting
-        with the actual value it is supposed to output.
-    metrics : list
-        select the metrics (accuracy) for estimate the model.
-
-    Returns
-    -------
-    model : class 'tensorflow.python.keras.\
-            engine.Model'
-        Model, Convolutional NN.
-
-    '''
-    model.summary()
-    model.compile(optimizer=optimizer, loss=loss,metrics=metrics)
-    return model
-
-def model_fit(model, train_x, train_y, test_x, test_y, epochs, check):
-    '''
-    This function returns a plot of model losses and metrics choosen
-    of train and validation test set data and evaluate the performance
-    of the model to the test set data.
+    This function first summarize the model previous created and then
+    compiles it automatically with Adam optimizer, binary cross entropy
+    loss and set metrics as accuracy.
+    At last, afterd the model is trained, returns a plot of model losses
+    and metrics choosen of train and validation test set data and evaluates
+    the performances of the model to the test set data.
     Parameters:
 
     Parameters
     ----------
     model : class 'tensorflow.python.keras.\
             engine.sequential.Sequential'
-    train_x : Vector, matrix, or array 
+        the model previous created.
+    train_x : Vector, matrix, or array
         training data.
     train_y : Vector, matrix, or array
         target data.
@@ -103,38 +73,41 @@ def model_fit(model, train_x, train_y, test_x, test_y, epochs, check):
         test data.
     test_y : Vector, matrix, or array
         target test data.
-    epochs : int
-        select the epochs to control the number of complete
-        passes through the training dataset.
-    check : list
-        callbacks to be called during training.
+    btc : int
+        select the batch size to control the number of
+        samples per gradient update.
 
     Returns
     -------
     history : class 'tensorflow.python.keras.\
             engine.Model'
         Model, Convolutional NN.
-    score : class 'ndarray'
-        Loss and accuracy values.
-    preds : class 'ndarray'
-        prediction on test data.
+    score_train : class 'ndarray'
+        Loss and accuracy values for train test.
+    score_test : class 'ndarray'
+        Loss and accuracy values for test test.
 
     '''
-    history = model.fit(train_x, train_y, validation_split = 0.4, epochs = epochs, callbacks=check)
-    score = model.evaluate(test_x,test_y, verbose=0)
-    print(f'Test loss: {score[0]} / Test accuracy: {score[1]}')
-    preds = model.predict(test_x)
-    plt.figure()
-    plt.title('Loss and Val_Loss vs epochs = {epochs}'.format(epochs=epochs))
+    model.summary()
+    model.compile(optimizer='adam', loss='binary_crossentropy',metrics=['accuracy'])
+    history = model.fit(train_x, train_y, validation_split=0.2, epochs=100, batch_size = btc_s)
+    score_train = model.evaluate(train_x, train_y, verbose=0)
+    print(f'Train loss: {score_train[0]} / Train accuracy: {score_train[1]}')
+    score_test = model.evaluate(test_x, test_y, verbose=0)
+    print(f'Test loss: {score_test[0]} / Test accuracy: {score_test[1]}')
+    plt.figure('loss')
+    plt.title('Loss and Val_Loss vs epochs = {m}/100'.format(m = len(history.history['loss']) ))
     plt.plot(history.history['loss'], label ='loss')
     plt.plot(history.history['val_loss'], label ='val_loss')
     plt.grid()
     plt.legend()
-    plt.figure()
-    plt.title('Accuracy and Val_Accuracy vs epochs = {epochs}'.format(epochs=epochs))
+    plt.show()
+    plt.figure('acc')
+    plt.title('Accuracy and val_accuracy\
+              vs epochs = {m}/100'.format(m = len(history.history['accuracy']) ))
     plt.plot(history.history['accuracy'], label ='accuracy')
     plt.plot(history.history['val_accuracy'], label ='val_accuracy')
     plt.legend()
     plt.grid()
     plt.show()
-    return history, score, preds
+    return history, score_train, score_test
