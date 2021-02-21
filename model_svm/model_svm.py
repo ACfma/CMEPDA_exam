@@ -80,8 +80,8 @@ def lab_names(ctrl_images_in, ad_images_in, ctrl_names_in, ad_names_in):
     names_out : ndarray
         Array of paths to file with the same order as labels.
     '''
-    lab_1 = np.ones(len(ctrl_images_in), dtype=int)
-    lab_2 = -np.ones(len(ad_images_in), dtype=int)
+    lab_1 = -np.ones(len(ctrl_images_in), dtype=int)
+    lab_2 = np.ones(len(ad_images_in), dtype=int)
     labels_out = np.append(lab_1, lab_2, axis=0)
     names_out = np.append(np.array(ctrl_names_in), np.array(ad_names_in), axis=0)
     return labels_out, names_out
