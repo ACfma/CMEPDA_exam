@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Tools to compare MMSE from AD_CTRL metadata to CNN prediction
-
+Example of tool used to compare MMSE from AD_CTRL metadata to CNN prediction
+in model_cnn.ipynb.
 
 """
 import argparse
@@ -66,4 +66,4 @@ if __name__ == "__main__":
                                      and train the dataset")
     parser.add_argument('-table', help='Path to your metadata.csv table', type=str)
     args = parser.parse_args()
-    table = args.table
+    df_table = args.table
