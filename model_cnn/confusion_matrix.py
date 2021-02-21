@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Tools to create a confusion matrix for multilabel classification.
+Examples of tool to create a confusion matrix for multilabel classification
+used in model_cnn.ipynb
 
 """
 
