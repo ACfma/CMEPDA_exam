@@ -368,9 +368,9 @@ def spearmanr_graph(df_s, test_x, test_names_s, fitted_classifier):
     ----------
     df_s : pandas.Dataframe
         Dataframe of the information about subjects.
-    test_x : ndarray
+    test_x : array
         Test set of data. Must be 2D array.
-    test_names_s : ndarray or list
+    test_names_s : array or list
         Iterable of path name with the same order as test_x.
     fitted_classifier : classifier
         Fitted classifier which devide the subjects.
@@ -378,7 +378,7 @@ def spearmanr_graph(df_s, test_x, test_names_s, fitted_classifier):
     -------
     fig_s : matplotlib.Figure
         Figure object of classification.
-    rank : ndarray
+    rank : array
         Array of shape (2,) containing Spearman r-value and p-value.
     '''
 
@@ -414,14 +414,14 @@ def spearmanr_graph(df_s, test_x, test_names_s, fitted_classifier):
 def roc_cv_trained(x_in, y_in, classifier, cvs):
     '''
     roc_cv_trained plots a mean roc curve with standard deviation along with mean auc\
-     given a classifier and a cv-splitter using matplotlib.
+    given a classifier and a cv-splitter using matplotlib.
     This version will assume the input classifier as already fitted. 
     
     Parameters
     ----------
-    x_in : ndarray or list
+    x_in : array or list
         Data to be predicted (n_samples, n_features)
-    y_in : ndarray or list
+    y_in : array or list
         Labels (n_samples)
     classifier : estimator
         Fitted classifier to use for the classification
