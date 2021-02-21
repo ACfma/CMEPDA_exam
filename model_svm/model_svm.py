@@ -510,7 +510,8 @@ if __name__ == "__main__":
     FEATURES_PCA = np.empty(0, dtype=int)
     FEATURES_RFE = np.empty(0, dtype=int)
     C = np.array([0.001, 0.01, 0.1, 1, 10, 100])
-    STAND_X = StandardScaler().fit_transform(X)
+    scaler = StandardScaler()
+    STAND_X = scaler.fit_transform(X)
     start_pca_box = perf_counter()
     plt.figure()
     FIG = cum_explained_variance(STAND_X)
@@ -569,7 +570,7 @@ if __name__ == "__main__":
                                                          random_state=42)
     start_pca_fred = perf_counter()
     STAND_X_TRAIN = STAND_X
-    STAND_X_TEST = StandardScaler().fit_transform(TEST_SET_DATA)
+    STAND_X_TEST = scaler.transform(TEST_SET_DATA)
     SHAPE = MEAN_MASK.shape
     CLASS = input("What classifier do you want to test on the reduced dataset: 'SVC' or 'SGD'?")
     print("Fitting PCA...")
