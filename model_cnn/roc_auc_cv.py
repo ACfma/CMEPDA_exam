@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Creating ROC curve and ROC area per CNN classification.
+Example of creating Stratified K-fold ROC curve and ROC area per CNN
+classification used in model_cnn.ipynb.
 
 """
 import numpy as np
 from sklearn.metrics import roc_curve, auc
 from matplotlib import pyplot as plt
 
-def roc_auc_cv(x_in, y_in, classifier, cvs, btc_sT, callback):
+def roc_auc_cv(x_in, y_in, classifier, cvs, enable):
     '''
     Tool to plot a mean ROC curve with standard deviation along with mean AUC
     given a classifier and a cv-splitter using matplotlib.
@@ -21,12 +22,11 @@ def roc_auc_cv(x_in, y_in, classifier, cvs, btc_sT, callback):
     classifier : class 'tensorflow.python.keras.\
             engine.Model'
         Model, Convolutional NN.
-    cvs : TYPE
-        DESCRIPTION.
-    btc_sT : model selector
-        Selector used for cv splitting
-    callback : list
-        callbacks to be called during the fit.
+    cvs : class 'sklearn.model_selection._split.RepeatedStratifiedKFold'
+        Repeat Stratified Kfold.
+    enable : True or False
+        Tool to enable or not the fit on test set data with k fold cross
+        validation.
 
     Returns
     -------
@@ -42,7 +42,9 @@ def roc_auc_cv(x_in, y_in, classifier, cvs, btc_sT, callback):
     fig, axs = plt.subplots()
     #Here I calcoulate a lot of roc and append it to the list of resoults
     for train, test in cvs.split(x_in, y_in):
-        classifier.fit(x_in[train], y_in[train], batch_size=btc_sT, epochs=100, callbacks=[callback])#Take train of the inputs and fit the model
+        if enable == True:
+            classifier.fit(x_in[train], y_in[train], validation_split = 0.1,\
+                           batch_size=16, epochs=50)#Take train of the inputs and fit the model
         probs= classifier.predict(x_in[test])
         fpr, tpr, _ = roc_curve(y_in[test], probs)
         interp_tpr = np.interp(mean_fpr, fpr, tpr)
@@ -51,7 +53,7 @@ def roc_auc_cv(x_in, y_in, classifier, cvs, btc_sT, callback):
         aucs.append(auc(fpr, tpr))
     #Plotting the base option
     axs.plot([0, 1], [0, 1], linestyle='--', lw=2, color='r',
-        label='Coin Flip', alpha=.8)
+        label='Base line', alpha=.8)
     #Calculate mean and std
     mean_tpr = np.mean(tprs, axis=0)
     mean_tpr[-1] = 1.0
