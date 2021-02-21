@@ -10,9 +10,8 @@ import SimpleITK as sitk
 
 def mean_mask(images, ctrl, overlap = 0.97):
     '''
-    mean_mask creates a mean mask based on a threshold along all the images\
-     given as input in order to retain just the most important voxels selected\
-     in "Automatic" or "Manual" mode.
+    Tool to create a mean mask based on a 0.1 threshold along all the images
+    given as input in order to retain just the most important voxels selected.
 
     Parameters
     ----------
@@ -23,8 +22,8 @@ def mean_mask(images, ctrl, overlap = 0.97):
         Number of control subject.
 
     overlap : float
-        Percentage of overlapping between all the images masks. overlap = 1\
-         for taking into account all the feature selected by the single masks.\
+        Percentage of overlapping between all the images masks. overlap = 1
+        for taking into account all the feature selected by the single masks.
         Must be a float between 0 and 1.
     Returns
     -------
@@ -33,46 +32,11 @@ def mean_mask(images, ctrl, overlap = 0.97):
 
     '''
 
-    def filter_gm(image):
-        '''
-        filter_gm uses RenyiEntropyThresholdImageFilter in order to create an\
-         ndarray.
-
-        Parameters
-        ----------
-        image : SimpleITK.Image
-            Image to apply the filter to.
-
-        Returns
-        -------
-        None.
-
-        '''
-        nonlocal masks
-        threshold_filters= sitk.RenyiEntropyThresholdImageFilter() # best threshold i could find
-        threshold_filters.SetInsideValue(0)#
-        threshold_filters.SetOutsideValue(1)#binomial I/O
-        thresh_img = threshold_filters.Execute(image)
-        msk = sitk.GetArrayFromImage(thresh_img)
-        masks.append(msk)
-
-    a_m = ''
-
-    while a_m != 'Automatic' and a_m != 'Manual':
-        a_m = input("\nWhat kind of filter do you want to apply?\
-                    \n-Type 'Automatic' if you like to use an automatic filter\
-                    \n-Type 'Manual' for select your threshold.\n")
-
     masks = []
 
-    if a_m == "Automatic":
-        for item in images:
-            filter_gm(item)
-
-    if a_m == "Manual":
-        thr = float(input("Insert your threshold:"))
-        for item in images:
-            masks.append(
+    thr = 0.1
+    for item in images:
+      masks.append(
                 np.where(sitk.GetArrayFromImage(item)>thr,1,0))
     #Building an histogram of occourrences of brain segmentation
     m_sum = np.sum(np.array(masks),

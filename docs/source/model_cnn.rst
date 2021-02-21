@@ -20,14 +20,6 @@ model\_cnn.dataset\_feed module
    :undoc-members:
    :show-inheritance:
 
-model\_cnn.glass\_brain module
-------------------------------
-
-.. automodule:: model_cnn.glass_brain
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 model\_cnn.mean\_mask module
 ----------------------------
 
@@ -64,6 +56,14 @@ model\_cnn.confusion\_matrix module
 -----------------------------------
 
 .. automodule:: model_cnn.confusion_matrix
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+model\_cnn.cm\_cv module
+------------------------
+
+.. automodule:: model_cnn.cm_cv
    :members:
    :undoc-members:
    :show-inheritance:
