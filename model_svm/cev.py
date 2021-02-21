@@ -20,12 +20,12 @@ def cum_explained_variance(dataset):
 
     Parameters
     ----------
-    dataset : ndarray
-        Array obtained from all images.
+    dataset : array
+        2D array obtained from all images.
     Returns
     -------
-    cum_var_exp : ndarray
-        Array with shape (n_samples)
+    cum_var_exp : array
+        2D array with shape (n_samples)
     axs : seaborn lineplot
 
     '''

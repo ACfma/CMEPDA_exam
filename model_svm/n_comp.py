@@ -19,8 +19,8 @@ def n_comp(data, percentage):
 
     Parameters
     ----------
-    data : ndarray
-        Array obtained from all images.
+    data : array
+        2D array obtained from all images.
     percentage: float
         Percentage of cumulative explained variance.
 

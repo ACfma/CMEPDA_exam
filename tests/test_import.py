@@ -3,8 +3,12 @@ import os
 #import glob
 
 import SimpleITK as sitk
+from unittest.mock import patch
+import matplotlib
+from model_svm.brain_animation import brain_animation
 
-from model_svm.Brain_Sequence import Brain_Sequence
+def get_input(text):
+    return input(text)
 
 class TestCore(unittest.TestCase):
     '''Testing the import function'''
@@ -18,11 +22,17 @@ class TestCore(unittest.TestCase):
         '''Testing the extraction'''
         self.assertTupleEqual(sitk.GetArrayFromImage(self.image).shape,(121,145,121))
 
-    def test_brain_sequence(self):
+    @patch('builtins.input', lambda *args: 'Axial')
+    def test_brain_sequence_axial(self):
         '''Test for user-defined function'''
-        self.assertEqual(len(Brain_Sequence('Axial', sitk.GetArrayFromImage(self.image)[:,:,:])),121)
-        self.assertEqual(len(Brain_Sequence('Coronal', sitk.GetArrayFromImage(self.image)[:,:,:])),145)
-        self.assertEqual(len(Brain_Sequence('Sagittal', sitk.GetArrayFromImage(self.image)[:,:,:])),121)
-
+        self.assertIsInstance(brain_animation(sitk.GetArrayFromImage(self.image)[:,:,:], 50, 100), matplotlib.animation.ArtistAnimation)
+    @patch('builtins.input', lambda *args: 'Sagittal')
+    def test_brain_sequence_sagittal(self):
+        '''Test for user-defined function'''
+        self.assertIsInstance(brain_animation(sitk.GetArrayFromImage(self.image)[:,:,:], 50, 100), matplotlib.animation.ArtistAnimation)
+    @patch('builtins.input', lambda *args: 'Coronal')
+    def test_brain_sequence_coronal(self):
+        '''Test for user-defined function'''
+        self.assertIsInstance(brain_animation(sitk.GetArrayFromImage(self.image)[:,:,:], 50, 100), matplotlib.animation.ArtistAnimation)
 if __name__=='__main__':
     unittest.main()

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 brain_animation creates an animation over one of the three dimension in order \
 to better visualize your data.
@@ -16,8 +15,8 @@ def brain_animation(image, interval, delay):
 
     Parameters
     ----------
-    Image: 3-D ndarray
-        Selected nifti image.
+    Image: array
+        3D selected nifti image.
 
     interval: int
         Time (in ms) between frames.
@@ -39,8 +38,8 @@ def brain_animation(image, interval, delay):
         ----------
         type_of_scan: string
             Specified view of the array: "Axial", "Coronal" or "Sagittal".
-        data:3D ndarray
-            Array to show
+        data: array
+            3D array to show
 
         Returns
         -------

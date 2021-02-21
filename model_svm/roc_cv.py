@@ -12,9 +12,9 @@ def roc_cv(x_in, y_in, classifier, cvs):
 
     Parameters
     ----------
-    x_in : ndarray or list
+    x_in : array or list
         Data to be predicted (n_samples, n_features)
-    y_in : ndarray or list
+    y_in : array or list
         Labels (n_samples)
     classifier : estimator
         Estimator to use for the classification
@@ -24,18 +24,17 @@ def roc_cv(x_in, y_in, classifier, cvs):
     Returns
     -------
     fig : matplotlib.Figure
-        Figure object, None if the classifier desn't fit the function'
+        Figure object, None if the classifier doesn't fit the function
     axs : AxesSubplot
-        Axis object, None if the classifier desn't fit the function
+        Axis object, None if the classifier doesn't fit the function
     '''
     tprs = []
     aucs = []
-    mean_fpr = np.linspace(0, 1, 100)#Needed for roc curve
+    mean_fpr = np.linspace(0, 1, 100)
     fig, axs = plt.subplots()
-    #Here I calcoulate a lot of roc and append it to the list of resoults
     for train, test in cvs.split(x_in, y_in):
 
-        classifier.fit(x_in[train], y_in[train])#Take train of the inputs and fit the model
+        classifier.fit(x_in[train], y_in[train])
         try:
             probs = classifier.predict_proba(x_in[test])[:,1]
         except:
@@ -52,10 +51,10 @@ def roc_cv(x_in, y_in, classifier, cvs):
         aucs.append(auc(fpr, tpr))
     #Plotting the base option
     axs.plot([0, 1], [0, 1], linestyle='--', lw=2, color='r',
-        label='Coin Flip', alpha=.8)
-    #Calculate mean and std
+        label='Base line', alpha=.8)
     mean_tpr = np.mean(tprs, axis=0)
     mean_tpr[-1] = 1.0
+    #Calculate mean and std of aucs
     mean_auc = np.mean(aucs)
     std_auc = np.std(aucs)
     axs.plot(mean_fpr, mean_tpr, color='b',
@@ -72,5 +71,5 @@ def roc_cv(x_in, y_in, classifier, cvs):
     plt.ylabel('True Positive Rate')
     plt.title('Cross-Validation ROC of SVM')
     plt.legend(loc="lower right")
-    plt.show()
+    plt.show(block=False)
     return fig, axs
