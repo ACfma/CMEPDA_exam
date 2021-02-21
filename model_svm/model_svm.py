@@ -316,20 +316,25 @@ def new_data(x_in, y_in, test_set_data, test_set_lab, support, pos_vox_r, shape_
     test_x = np.array(test_x)
     test_y = np.array(test_set_lab)
     #Resume
-    
-    score = fitted_classifier.score(test_x, test_y)
-
-    y_pred = fitted_classifier.predict(test_x)
-    conf = confusion_matrix(test_y, y_pred, labels=[-1,1]).ravel()
-    
-    print('Accuracy = {}'.format(score))
-    print('tn = {}'.format(conf[0]))
-    print('fp = {}'.format(conf[1]))
-    print('fn = {}'.format(conf[2]))
-    print('tp = {}'.format(conf[3]))
+    scores = []
+    confs = []
+    CV = RepeatedStratifiedKFold(n_splits=5, n_repeats=3, random_state=42)
+    for _, test in CV.split(test_x, test_y):
+        scores.append(fitted_classifier.score(test_x[test], test_y[test]))
+        y_pred = fitted_classifier.predict(test_x[test])
+        confs.append(confusion_matrix(test_y[test], y_pred, labels=[-1,1]).ravel())
+    scores = np.array(scores)
+    confs = np.array(confs)
+    ratio_m = np.mean(confs, axis = 0)
+    ratio_std = np.std(confs, axis = 0)
+    print('Accuracy = {} +/- {}'.format(scores.mean(), scores.std()))
+    print('tn = {} +/- {}'.format(ratio_m[0], ratio_std[0]))
+    print('fp = {} +/- {}'.format(ratio_m[1], ratio_std[1]))
+    print('fn = {} +/- {}'.format(ratio_m[2], ratio_std[2]))
+    print('tp = {} +/- {}'.format(ratio_m[3], ratio_std[3]))
     plt.figure()
-    sns.heatmap(conf.reshape(2,2), annot=True, xticklabels = ['AD', 'CTRL'],
-                yticklabels = ['AD', 'CTRL'])
+    sns.heatmap(ratio_m.reshape(2,2), annot=True, xticklabels = ['CTRL','AD'],
+                yticklabels = ['CTRL', 'AD'])
     plt.show(block = False)
     start_mat = perf_counter()
     zero_m = np.zeros(shape_r)
