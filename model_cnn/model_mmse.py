@@ -19,15 +19,15 @@ def plot_mmse_prediction(table, test_names, classifier, test_x):
     ----------
     test_names : list
         list with test names.
-    X : class 'np.array'
+    X : array
         Array of test data.
-    classifier : class 'tensorflow.python.keras.\
-            engine.Model'
+    classifier : tensorflow.python.keras.\
+            engine.Model
         Model, Convolutional NN.
 
     Returns
     -------
-    spr_rank : class 'scipy.stats.stats.SpearmanrResult'
+    spr_rank : scipy.stats.stats.SpearmanrResult
         Sperman Rank.
 
     '''
