@@ -10,7 +10,7 @@ import SimpleITK as sitk
 
 def mean_mask(images, ctrl, overlap = 0.97):
     '''
-    Tool to create a mean mask based on a 0.1 threshold along all the images
+    mean_mask creates a mean mask based on a 0.1 threshold along all the images
     given as input in order to retain just the most important voxels selected.
 
     Parameters
@@ -27,7 +27,7 @@ def mean_mask(images, ctrl, overlap = 0.97):
         Must be a float between 0 and 1.
     Returns
     -------
-    m_mean : ndarray
+    m_mean : array
         Array of the same dimension of a single input image.
 
     '''
