@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Example of creating Stratified K-fold confusion matrix per CNN classification
+Example of creating Stratified K-fold confusion matrix for CNN classification
 used in model_cnn.ipynb.
 
 """
@@ -11,20 +11,20 @@ import seaborn as sn
 
 def cm_cv(x_in, y_in, classifier, cvs):
     '''
-    Tool to plot a mean confusion matrix with standard deviation along
+    cm_cv plot a mean confusion matrix with standard deviation
     given a classifier and a cv-splitter using matplotlib.
 
     Parameters
     ----------
-    x_in : class 'ndarray', or list
+    x_in : array, or list
         test set, data to be predicted.
-    y_in : class 'ndarray' or list
+    y_in : array or list
         target set, labels.
-    classifier : class 'tensorflow.python.keras.\
-            engine.Model'
+    classifier : tensorflow.python.keras.\
+            engine.Model
         Model, Convolutional NN.
-    cvs : class 'sklearn.model_selection._split.RepeatedStratifiedKFold'
-        Repeat Stratified Kfold.
+    cvs : model selector
+        Selector used for cv splitting
 
     Returns
     -------
