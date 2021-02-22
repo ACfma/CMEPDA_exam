@@ -19,13 +19,13 @@ def model_build(shape):
 
     Parameters
     ----------
-    shape : class 'tuple'
+    shape : tuple
         shape of images we use to feed the network.
 
     Returns
     -------
-    model : class 'tensorflow.python.keras.\
-            engine.Model.Sequential'
+    model : tensorflow.python.keras.\
+            engine.Model.Sequential
         Model, Convolutional NN.
 
     '''
@@ -52,19 +52,19 @@ def model_build(shape):
 
 def model_fit(model, train_x, train_y, test_x, test_y, btc_s):
     '''
-    This function first summarize the model previous created and then
+    This function first summarize the model previously created and then
     compiles it automatically with Adam optimizer, binary cross entropy
     loss and set metrics as accuracy.
-    At last, afterd the model is trained, returns a plot of model losses
-    and metrics choosen of train and validation test set data and evaluates
+    At last, after the model is trained, returns a plot of the choosen
+    model losses and metrics for train and validation data and evaluates
     the performances of the model to the test set data.
     Parameters:
 
     Parameters
     ----------
-    model : class 'tensorflow.python.keras.\
+    model : 'tensorflow.python.keras.\
             engine.sequential.Sequential'
-        the model previous created.
+        the model previously created.
     train_x : Vector, matrix, or array
         training data.
     train_y : Vector, matrix, or array
@@ -79,12 +79,12 @@ def model_fit(model, train_x, train_y, test_x, test_y, btc_s):
 
     Returns
     -------
-    history : class 'tensorflow.python.keras.\
-            engine.Model'
+    history : tensorflow.python.keras.\
+            engine.Model
         Model, Convolutional NN.
-    score_train : class 'ndarray'
+    score_train : array
         Loss and accuracy values for train test.
-    score_test : class 'ndarray'
+    score_test : array
         Loss and accuracy values for test test.
 
     '''
