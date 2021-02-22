@@ -14,8 +14,8 @@ import numpy as np
 
 def cum_explained_variance(dataset):
     '''
-    cum_explained_variance return a 1D array that contain the cumulative explained/
-    variance of a dataset and a plot of cumulative explained variance vs number of/
+    cum_explained_variance return a 1D array that contain the cumulative explained\
+    variance of a dataset and a plot of cumulative explained variance vs number of\
     possible components.
 
     Parameters

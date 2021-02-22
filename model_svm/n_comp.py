@@ -14,7 +14,7 @@ FEATURES = []
 
 def n_comp(data, percentage):
     '''
-    n_comp return the number of components respect to the percentage of cumulative/
+    n_comp return the number of components respect to the percentage of cumulative\
     explained variance.
 
     Parameters
@@ -26,7 +26,8 @@ def n_comp(data, percentage):
 
     Returns
     -------
-    Returns the number of PCs.
+    c_n : array
+        Returns the number of PCs.
 
     '''
     pca = PCA(percentage)
