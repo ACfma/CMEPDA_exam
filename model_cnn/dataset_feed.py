@@ -1,5 +1,5 @@
 '''
-Examples of the module used to create the dataset to feed the Neural Network in
+Example of the module used to create the dataset to feed the Neural Network in
 model_cnn.ipynb
 '''
 import os
@@ -59,7 +59,7 @@ def lab_names(path_ctrl, path_ad, img_ctrl, img_ad):
         AD images.
     Returns
     -------
-    labels : ndarray
+    labels : array
         Array of labels.
     names : list
         list of paths to file with the same order as labels.
