@@ -32,7 +32,7 @@ from sklearn.metrics import roc_curve, auc
 
 sys.path.insert(0, os.path.abspath(''))
 from model_svm.thread_pool import thread_pool
-#from model_svm.brain_animation import brain_animation
+from model_svm.brain_animation import brain_animation
 from model_svm.mean_mask import mean_mask
 from model_svm.roc_cv import roc_cv
 #from model_svm.glass_brain import glass_brain
@@ -483,31 +483,25 @@ def roc_cv_trained(x_in, y_in, classifier, cvs):
 if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO, format='%(message)s')
-    PATH = os.path.abspath('IMAGES/train_set')
-    FILES = '*.nii'#find all nifti files with .nii in the name
+    parser = argparse.ArgumentParser(
+          description="Analyze your data using different kind of SVC with linear\
+              kernel and reduction of features")
+    parser.add_argument('-trainpath', help='Path to your train files', type=str)
+    parser.add_argument('-testpath', help='Path to your test files', type=str)
+    args = parser.parse_args()
+    PATH = args.trainpath
+    FILES = r"*.nii"
+
     START = perf_counter()#Start the system timer
+
     SUBJ = glob.glob(os.path.join(PATH, FILES))
+
     AD_IMAGES, AD_NAMES, CTRL_IMAGES, CTRL_NAMES = thread_pool(SUBJ)
+
     print("Import time: {}".format(perf_counter()-START))#Print performance time
-    # parser = argparse.ArgumentParser(
-    #       description="Analyze your data using different kind of SVC with linear\
-    #           kernel and reduction of features")
-    # parser.add_argument('-trainpath', help='Path to your train files', type=str)
-    # parser.add_argument('-testpath', help='Path to your test files', type=str)
-    # args = parser.parse_args()
-    # PATH = args.trainpath
-    # FILES = r"*.nii"
 
-    # START = perf_counter()#Start the system timer
-
-    # SUBJ = glob.glob(os.path.join(PATH, FILES))
-
-    # AD_IMAGES, AD_NAMES, CTRL_IMAGES, CTRL_NAMES = thread_pool(SUBJ)
-
-    # print("Import time: {}".format(perf_counter()-START))#Print performance time
-
-    # ANIM = brain_animation(sitk.GetArrayViewFromImage(CTRL_IMAGES[0]), 50, 100)
-    # plt.show(block=False)
+    ANIM = brain_animation(sitk.GetArrayViewFromImage(CTRL_IMAGES[0]), 50, 100)
+    plt.show(block=False)
     #%% Application of the mean_mask over study subjects.
     IMAGES = CTRL_IMAGES.copy()
     IMAGES.extend(AD_IMAGES.copy())
@@ -533,39 +527,40 @@ if __name__ == "__main__":
     start_pca_box = perf_counter()
     plt.figure()
     FIG = cum_explained_variance(STAND_X)
-    #plt.show(block=False)
     PERC = [0.20, 0.40, 0.60, 0.80, 0.85, 0.90, 0.95]
-    # QUEST = input("Do you want to use the number of PCAs at 60-70-80-85-90-95%?(Yes/No)")
-    # if QUEST == 'Yes':
-    for item in PERC:
-        FEATURES_PCA = np.append(FEATURES_PCA, n_comp(STAND_X, item))
-    # elif QUEST == 'No':
-    #     CONT = 0
-    #     NUM = input("Insert PCA feature n{} (ends with 'stop'):".format(CONT))
-    #     while NUM!='stop':
-    #         FEATURES_PCA = np.append(FEATURES_PCA, int(NUM))
-    #         CONT = CONT+1
-    #         NUM = input("Insert PCA components n{} (ends with 'stop'):".format(
-    #                                                                CONT))
-    # else:
-    #     logging.warning('Your selection was invalid')
-
+    start_quest = perf_counter()
+    QUEST = input("Do you want to use the number of PCAs at 60-70-80-85-90-95%?(Yes/No)")
+    if QUEST == 'Yes':
+        for item in PERC:
+            FEATURES_PCA = np.append(FEATURES_PCA, n_comp(STAND_X, item))
+    elif QUEST == 'No':
+        CONT = 0
+        NUM = input("Insert PCA feature n{} (ends with 'stop'):".format(CONT))
+        while NUM!='stop':
+            FEATURES_PCA = np.append(FEATURES_PCA, int(NUM))
+            CONT = CONT+1
+            NUM = input("Insert PCA components n{} (ends with 'stop'):".format(
+                                                                    CONT))
+    else:
+        logging.warning('Your selection was invalid')
+    logging.info("Time of interaction: {}".format(perf_counter()-start_quest))
     BEST_N_PCA, CS_PCA, FIG_PCA = rfe_pca_boxplot(STAND_X, Y, CLASS,
                                                   FEATURES_PCA, C,
                                                   selector_s='PCA',
                                                   figure=True)
-    print("Best number of PC: {}".format(BEST_N_PCA))
-    # CONT = 0
-    # NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(
-    #                                                                   CONT))
-
     plt.show(block=False)
     print("PCA boxplot's time: {}".format(perf_counter()-start_pca_box))
+    print("Best number of PC: {}".format(BEST_N_PCA))
+    CONT = 0
     start_rfe_box = perf_counter()
-    # while(NUM!='stop'):
-    #     FEATURES_RFE = np.append(FEATURES_RFE, int(NUM))
-    #     CONT = CONT+1
-    #     NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(CONT))
+    start_quest = perf_counter()
+    NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(
+                                                                       CONT))
+    while(NUM!='stop'):
+        FEATURES_RFE = np.append(FEATURES_RFE, int(NUM))
+        CONT = CONT+1
+        NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(CONT))
+    logging.info("Time of interaction: {}".format(perf_counter()-start_quest))
     FEATURES_RFE = np.array([500000, 300000, 100000, 50000, 10000, 5000])
     BEST_N_RFE, CS_RFE, FIG_RFE = rfe_pca_boxplot(STAND_X, Y, CLASS,
                                                   FEATURES_RFE, C,
@@ -576,8 +571,7 @@ if __name__ == "__main__":
     print("Best retained features from RFE: {}".format(BEST_N_RFE))
     #%%Application of the trained classifier over test set.
 
-    #PATH = args.testpath
-    PATH = os.path.abspath('IMAGES/test_set')
+    PATH = args.testpath
     SUBJ = glob.glob(os.path.join(PATH, FILES))
 
     AD_IMAGES_T, AD_NAMES_T, CTRL_IMAGES_T, CTRL_NAMES_T = thread_pool(SUBJ)
