@@ -15,15 +15,15 @@ def roc_auc_cv(x_in, y_in, classifier, cvs, enable):
 
     Parameters
     ----------
-    x_in : class 'ndarray', or list
+    x_in : array, or list
         test set, data to be predicted.
-    y_in : class 'ndarray' or list
+    y_in : array or list
         target set, labels.
-    classifier : class 'tensorflow.python.keras.\
-            engine.Model'
+    classifier : tensorflow.python.keras.\
+            engine.Model
         Model, Convolutional NN.
-    cvs : class 'sklearn.model_selection._split.RepeatedStratifiedKFold'
-        Repeat Stratified Kfold.
+    cvs : model selector
+        Selector used for cv splitting
     enable : True or False
         Tool to enable or not the fit on test set data with k fold cross
         validation.
@@ -31,9 +31,9 @@ def roc_auc_cv(x_in, y_in, classifier, cvs, enable):
     Returns
     -------
     fig : matplotlib.Figure
-        Figure object, None if the classifier desn't fit the function'
+        Figure object, None if the classifier doesn't fit the function'
     axs : AxesSubplot
-        Axis object, None if the classifier desn't fit the function
+        Axis object, None if the classifier doesn't fit the function
 
     '''
     tprs = []
