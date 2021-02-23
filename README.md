@@ -29,6 +29,7 @@ model_svm will also save different maps of the most important features found as 
 <img src="https://github.com/ACfma/CMEPDA_exam/blob/main/IMAGES/summed_ctrl.png" height="250" width="250">
 
 (Image created using [Mango®](http://ric.uthscsa.edu/mango/mango.html) )
+
 ---
 
 **These modules have been created using Python 3.7.**
