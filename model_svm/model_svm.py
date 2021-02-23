@@ -154,7 +154,7 @@ def rfe_pca_boxplot(x_in, y_in, clf, features_s, c_in, selector_s=None,
             ('m', classifier_s)]) for f in features_s]
     elif selector_s == 'PCA':
         #if 'PCA' has been selected the maximun number of PCs is limited by k-fold.
-        f_max = (x_in.shape[0]*((n_splits_k-1)/n_splits_k)-(n_splits_k-1))
+        f_max = (x_in.shape[0]*((n_splits_k-1)/n_splits_k))
         if any(features_s>f_max):
             logging.warning('One or more of your input PC is out of range.\n\
                             Using allowed combinations...')
