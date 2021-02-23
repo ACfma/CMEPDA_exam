@@ -71,7 +71,7 @@ def roc_auc_cv(x_in, y_in, classifier, cvs, enable):
 
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title('Cross-Validation ROC of SVM')
+    plt.title('Cross-Validation ROC of 3DCNN')
     plt.legend(loc="lower right")
     plt.show()
     return fig, axs
