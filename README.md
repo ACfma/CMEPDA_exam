@@ -8,7 +8,7 @@ The images used in order to create and test these classifiers can be found in th
 
 ## split_folder
 
-split_folder is a Python module capable to split a whole images dataset in two folder: train_set and test_set.
+split_folder is a Python module capable to split a whole images dataset in two folder: [train_set](https://github.com/ACfma/CMEPDA_exam/tree/main/IMAGES/train_set) and [test_set](https://github.com/ACfma/CMEPDA_exam/tree/main/IMAGES/test_set).
 
 These two folders can been used to feed the models below.
 
