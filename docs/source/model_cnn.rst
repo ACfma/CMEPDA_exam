@@ -52,14 +52,6 @@ model\_cnn.roc\_auc\_cv module
    :undoc-members:
    :show-inheritance:
 
-model\_cnn.confusion\_matrix module
------------------------------------
-
-.. automodule:: model_cnn.confusion_matrix
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 model\_cnn.cm\_cv module
 ------------------------
 
