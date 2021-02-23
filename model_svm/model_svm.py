@@ -27,7 +27,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import roc_curve, auc
 
-#brain_animation and glass_brain display only a different view of the dataset 
+#brain_animation and glass_brain display only a different view of the dataset
 #not closely necessary for the analysis
 
 sys.path.insert(0, os.path.abspath(''))
@@ -148,7 +148,7 @@ def rfe_pca_boxplot(x_in, y_in, clf, features_s, c_in, selector_s=None,
     elif selector_s == 'RFE':
         start_int = perf_counter()
         step = float(input("Select step for RFE:"))
-        logging.info('Time of interaction:{} s'.format(perf_counter() - start_int))
+        logging.info('Time of interaction: %f s', perf_counter() - start_int)
         models = [Pipeline(steps=[
             ('s', RFE(estimator=classifier_s, n_features_to_select=f, step=step)),
             ('m', classifier_s)]) for f in features_s]
@@ -256,14 +256,14 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, c_r, selector_r=None, random_s
         feat = fit_p.components_[indx, :]
         start_int = perf_counter()
         n_feat_r = int(input("Insert number of retained features:"))
-        logging.info('Time of interaction:{} s'.format(perf_counter() - start_int))
+        logging.info('Time of interaction: %f s', perf_counter() - start_int)
         sort_feat = np.sort(feat)[0:n_feat_r]
         support = np.in1d(feat, sort_feat)
     elif selector_r == 'RFE':
         #Selection based on RFE ranking.
         start_int = perf_counter()
         step = float(input("Insert step for RFE:"))
-        logging.info('Time of interaction:{} s'.format(perf_counter() - start_int))
+        logging.info('Time of interaction: %f s', perf_counter() - start_int)
         rfe = RFE(estimator=classifier_r, n_features_to_select=features_r, step=step)
         fit_r = rfe.fit(x_in, y_in)
         support = fit_r.support_
@@ -275,8 +275,8 @@ def rfe_pca_reductor(x_in, y_in, clf, features_r, c_r, selector_r=None, random_s
 
     return support, classifier_r
 
-def new_data(train_set_data, train_set_lab, test_set_data, test_set_lab, support, pos_vox_r, shape_r,
-             classifier_n,random_state=42):
+def new_data(train_set_data, train_set_lab, test_set_data, test_set_lab, support, pos_vox_r,
+             shape_r, classifier_n, random_state=42):
     '''
     new_data allows the reduction of the initial features to the ensamble \
     defined by the support vector along with the score of the fitted classifier and \
@@ -329,8 +329,8 @@ def new_data(train_set_data, train_set_lab, test_set_data, test_set_lab, support
     #Making mean confusion matrix and accuracy by using a k-fold split.
     scores = []
     confs = []
-    CV = RepeatedStratifiedKFold(n_splits=5, n_repeats=3, random_state=42)
-    for _, test in CV.split(test_x, test_y):
+    kfs = RepeatedStratifiedKFold(n_splits=5, n_repeats=3, random_state=random_state)
+    for _, test in kfs.split(test_x, test_y):
         scores.append(fitted_classifier.score(test_x[test], test_y[test]))
         y_pred = fitted_classifier.predict(test_x[test])
         confs.append(confusion_matrix(test_y[test], y_pred, labels=[-1,1]).ravel())
@@ -355,7 +355,7 @@ def new_data(train_set_data, train_set_lab, test_set_data, test_set_lab, support
     pos_3 = pos_vox_r[2][support]
     for i, _ in enumerate(pos_1):
         zero_m[pos_1[i], pos_2[i], pos_3[i]] = ranking[i]
-    logging.info("Matrix building time: {}".format(perf_counter()-start_mat))
+    logging.info("Matrix building time: %f", perf_counter()-start_mat)
     return test_x, test_y, fitted_classifier, zero_m
 
 
@@ -415,8 +415,8 @@ def roc_cv_trained(x_in, y_in, classifier, cvs):
     '''
     roc_cv_trained plots a mean roc curve with standard deviation along with mean auc\
     given a classifier and a cv-splitter using matplotlib.
-    This version will assume the input classifier as already fitted. 
-    
+    This version will assume the input classifier as already fitted.
+
     Parameters
     ----------
     x_in : array or list
@@ -427,7 +427,7 @@ def roc_cv_trained(x_in, y_in, classifier, cvs):
         Fitted classifier to use for the classification
     cvs : model selector
         Selector used for cv splitting
-    
+
     Returns
     -------
     fig : matplotlib.Figure
@@ -472,7 +472,7 @@ def roc_cv_trained(x_in, y_in, classifier, cvs):
     tprs_lower = np.maximum(mean_tpr - std_tpr, 0)
     axs.fill_between(mean_fpr, tprs_lower, tprs_upper, color='grey', alpha=.2,
                     label=r'$\pm$ 1 std. dev.')
-    
+
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
     plt.title('Cross-Validation ROC of fitted SVM (using the whole test set)')
@@ -529,8 +529,7 @@ if __name__ == "__main__":
     FIG = cum_explained_variance(STAND_X)
     PERC = [0.20, 0.40, 0.60, 0.80, 0.85, 0.90, 0.95]
     start_quest = perf_counter()
-    QUEST = input("Do you want to use the number of PCAs at\
-                  20-40-60-70-80-85-90-95%?(Yes/No)")
+    QUEST = input("Do you want to use the number of PCAs at 20-40-60-70-80-85-90-95%?(Yes/No)")
     if QUEST == 'Yes':
         for item in PERC:
             FEATURES_PCA = np.append(FEATURES_PCA, n_comp(STAND_X, item))
@@ -544,7 +543,7 @@ if __name__ == "__main__":
                                                                     CONT))
     else:
         logging.warning('Your selection was invalid')
-    logging.info("Time of interaction: {}".format(perf_counter()-start_quest))
+    logging.info("Time of interaction: %f s", perf_counter()-start_quest)
     BEST_N_PCA, CS_PCA, FIG_PCA = rfe_pca_boxplot(STAND_X, Y, CLASS,
                                                   FEATURES_PCA, C,
                                                   selector_s='PCA',
@@ -557,11 +556,11 @@ if __name__ == "__main__":
     start_quest = perf_counter()
     NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(
                                                                        CONT))
-    while(NUM!='stop'):
+    while NUM!='stop':
         FEATURES_RFE = np.append(FEATURES_RFE, int(NUM))
         CONT = CONT+1
         NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(CONT))
-    logging.info("Time of interaction: {}".format(perf_counter()-start_quest))
+    logging.info("Time of interaction: %f s", perf_counter()-start_quest)
     BEST_N_RFE, CS_RFE, FIG_RFE = rfe_pca_boxplot(STAND_X, Y, CLASS,
                                                   FEATURES_RFE, C,
                                                   selector_s='RFE',
@@ -589,7 +588,8 @@ if __name__ == "__main__":
     CLASS = input("What classifier do you want to test on the reduced dataset: 'SVC' or 'SGD'?")
 
     print("Fitting PCA...")
-    SUPPORT_PCA, CLASSIFIER_PCA = rfe_pca_reductor(STAND_X_TRAIN, Y, CLASS, BEST_N_PCA, CS_PCA, 'PCA')
+    SUPPORT_PCA, CLASSIFIER_PCA = rfe_pca_reductor(STAND_X_TRAIN, Y, CLASS,
+                                                   BEST_N_PCA, CS_PCA, 'PCA')
     TEST_X_PCA, TEST_Y_PCA, FITTED_CLASSIFIER_PCA, M_PCA = new_data(STAND_X_TRAIN, Y,
                                                              STAND_X_TEST,
                                                              TEST_SET_LAB,
@@ -603,7 +603,8 @@ if __name__ == "__main__":
     start_rfe_fred = perf_counter()
 
     print("Fitting RFE...")
-    SUPPORT_RFE, CLASSIFIER_RFE = rfe_pca_reductor(STAND_X_TRAIN, Y, CLASS, BEST_N_RFE, CS_RFE, 'RFE')
+    SUPPORT_RFE, CLASSIFIER_RFE = rfe_pca_reductor(STAND_X_TRAIN, Y, CLASS,
+                                                   BEST_N_RFE, CS_RFE, 'RFE')
     TEST_X_RFE, TEST_Y_RFE, FITTED_CLASSIFIER_RFE, M_RFE = new_data(STAND_X_TRAIN, Y,
                                                              STAND_X_TEST,
                                                              TEST_SET_LAB,
@@ -638,8 +639,7 @@ if __name__ == "__main__":
         sitk.WriteImage(img,os.path.join(PATH, '{}.nii'.format(item)))
 
     #%%Spearman rank comparision.
-    CSV_PATH = input("Insert full path of your .csv with MMSE classification of\
-                     your subjects: ")
+    CSV_PATH = input("Insert full path of your .csv with MMSE classification of your subjects:")
     DFM = pd.read_table(CSV_PATH)
     FIG_PCA, RANK_PCA = spearmanr_graph(DFM, TEST_X_PCA, TEST_NAMES, FITTED_CLASSIFIER_PCA)
     FIG_RFE, RANK_RFE = spearmanr_graph(DFM, TEST_X_RFE, TEST_NAMES, FITTED_CLASSIFIER_RFE)
