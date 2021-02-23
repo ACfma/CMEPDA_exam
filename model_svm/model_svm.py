@@ -477,7 +477,7 @@ def roc_cv_trained(x_in, y_in, classifier, cvs):
     plt.ylabel('True Positive Rate')
     plt.title('Cross-Validation ROC of fitted SVM (using the whole test set)')
     plt.legend(loc="lower right")
-    plt.show()
+    plt.show(block = False)
     return fig, axs
 
 if __name__ == "__main__":
@@ -506,6 +506,7 @@ if __name__ == "__main__":
     IMAGES = CTRL_IMAGES.copy()
     IMAGES.extend(AD_IMAGES.copy())
     MEAN_MASK = mean_mask(IMAGES, len(CTRL_IMAGES), overlap=0.97)
+    #glass_brain can be used to visualize the 3D mask, however it could take a while to be displayed.
     #glass_brain(mean_mask, 0.1, 4, True, Zero_M )
     POS_VOX = np.where(MEAN_MASK == 1)
     #%% Flattening of the selected features.
@@ -531,9 +532,11 @@ if __name__ == "__main__":
     start_quest = perf_counter()
     QUEST = input("Do you want to use the number of PCAs at 20-40-60-70-80-85-90-95%?(Yes/No)")
     if QUEST == 'Yes':
+        logging.info("Time of interaction: %f s", perf_counter()-start_quest)
         for item in PERC:
             FEATURES_PCA = np.append(FEATURES_PCA, n_comp(STAND_X, item))
     elif QUEST == 'No':
+        logging.info("Time of interaction: %f s", perf_counter()-start_quest)
         CONT = 0
         NUM = input("Insert PCA feature n{} (ends with 'stop'):".format(CONT))
         while NUM!='stop':
@@ -543,7 +546,7 @@ if __name__ == "__main__":
                                                                     CONT))
     else:
         logging.warning('Your selection was invalid')
-    logging.info("Time of interaction: %f s", perf_counter()-start_quest)
+
     BEST_N_PCA, CS_PCA, FIG_PCA = rfe_pca_boxplot(STAND_X, Y, CLASS,
                                                   FEATURES_PCA, C,
                                                   selector_s='PCA',
