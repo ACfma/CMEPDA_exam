@@ -529,7 +529,8 @@ if __name__ == "__main__":
     FIG = cum_explained_variance(STAND_X)
     PERC = [0.20, 0.40, 0.60, 0.80, 0.85, 0.90, 0.95]
     start_quest = perf_counter()
-    QUEST = input("Do you want to use the number of PCAs at 60-70-80-85-90-95%?(Yes/No)")
+    QUEST = input("Do you want to use the number of PCAs at\
+                  20-40-60-70-80-85-90-95%?(Yes/No)")
     if QUEST == 'Yes':
         for item in PERC:
             FEATURES_PCA = np.append(FEATURES_PCA, n_comp(STAND_X, item))
@@ -561,7 +562,6 @@ if __name__ == "__main__":
         CONT = CONT+1
         NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(CONT))
     logging.info("Time of interaction: {}".format(perf_counter()-start_quest))
-    FEATURES_RFE = np.array([500000, 300000, 100000, 50000, 10000, 5000])
     BEST_N_RFE, CS_RFE, FIG_RFE = rfe_pca_boxplot(STAND_X, Y, CLASS,
                                                   FEATURES_RFE, C,
                                                   selector_s='RFE',
