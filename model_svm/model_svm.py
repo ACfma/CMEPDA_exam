@@ -24,8 +24,7 @@ from sklearn.svm import SVC
 from sklearn.linear_model import SGDClassifier
 from sklearn.utils import shuffle
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import roc_curve, auc
+from sklearn.metrics import confusion_matrix, roc_curve, auc
 
 #brain_animation and glass_brain display only a different view of the dataset
 #not closely necessary for the analysis
@@ -481,33 +480,39 @@ def roc_cv_trained(x_in, y_in, classifier, cvs):
     return fig, axs
 
 if __name__ == "__main__":
-
     logging.basicConfig(level=logging.INFO, format='%(message)s')
-    parser = argparse.ArgumentParser(
-          description="Analyze your data using different kind of SVC with linear\
-              kernel and reduction of features")
-    parser.add_argument('-trainpath', help='Path to your train files', type=str)
-    parser.add_argument('-testpath', help='Path to your test files', type=str)
-    args = parser.parse_args()
-    PATH = args.trainpath
-    FILES = r"*.nii"
-
+    PATH = os.path.abspath('IMAGES/train_set')
+    FILES = '*.nii'#find all nifti files with .nii in the name
     START = perf_counter()#Start the system timer
-
     SUBJ = glob.glob(os.path.join(PATH, FILES))
-
     AD_IMAGES, AD_NAMES, CTRL_IMAGES, CTRL_NAMES = thread_pool(SUBJ)
+    # print("Import time: {}".format(perf_counter()-START))#Print performance time
+    # logging.basicConfig(level=logging.INFO, format='%(message)s')
+    # parser = argparse.ArgumentParser(
+    #       description="Analyze your data using different kind of SVC with linear\
+    #           kernel and reduction of features")
+    # parser.add_argument('-trainpath', help='Path to your train files', type=str)
+    # parser.add_argument('-testpath', help='Path to your test files', type=str)
+    # args = parser.parse_args()
+    # PATH = args.trainpath
+    # FILES = r"*.nii"
 
-    print("Import time: {}".format(perf_counter()-START))#Print performance time
+    # START = perf_counter()#Start the system timer
 
-    ANIM = brain_animation(sitk.GetArrayViewFromImage(CTRL_IMAGES[0]), 50, 100)
-    plt.show(block=False)
+    # SUBJ = glob.glob(os.path.join(PATH, FILES))
+
+    # AD_IMAGES, AD_NAMES, CTRL_IMAGES, CTRL_NAMES = thread_pool(SUBJ)
+
+    # print("Import time: {}".format(perf_counter()-START))#Print performance time
+
+    # ANIM = brain_animation(sitk.GetArrayViewFromImage(CTRL_IMAGES[0]), 50, 100)
+    # plt.show(block=False)
     #%% Application of the mean_mask over study subjects.
     IMAGES = CTRL_IMAGES.copy()
     IMAGES.extend(AD_IMAGES.copy())
     MEAN_MASK = mean_mask(IMAGES, len(CTRL_IMAGES), overlap=0.97)
     #glass_brain can be used to visualize the 3D mask, however it could take a while to be displayed.
-    #glass_brain(mean_mask, 0.1, 4, True, Zero_M )
+    #glass_brain(mean_mask, 0.1, 4)
     POS_VOX = np.where(MEAN_MASK == 1)
     #%% Flattening of the selected features.
     start_glob = perf_counter()
@@ -515,9 +520,9 @@ if __name__ == "__main__":
     #%% Creation of the labels (-1,1).
     LABELS, NAMES = lab_names(CTRL_IMAGES, AD_IMAGES, CTRL_NAMES, AD_NAMES)
     #%% Shuffle of the train set.
-    TRAIN_SET_DATA, TRAIN_SET_LAB, TRAIN_NAMES = shuffle(DATASET, LABELS, NAMES,
+    X, Y, TRAIN_NAMES = shuffle(DATASET, LABELS, NAMES,
                                                          random_state=42)
-    X, Y = TRAIN_SET_DATA, TRAIN_SET_LAB
+    
     #%% Boxplot of selected features (given by "best practice" or manually).
     CLASS = input("Select Classifier between 'SVC' or 'SGD':")
     FEATURES_PCA = np.empty(0, dtype=int)
@@ -564,7 +569,7 @@ if __name__ == "__main__":
         CONT = CONT+1
         NUM = input("Insert RFE retained feature n{} (ends with 'stop'):".format(CONT))
     logging.info("Time of interaction: %f s", perf_counter()-start_quest)
-    BEST_N_RFE, CS_RFE, FIG_RFE = rfe_pca_boxplot(STAND_X, Y, CLASS,
+    BEST_N_RFE, CS_RFE, FIG_RFE = rfe_pca_boxplot(X, Y, CLASS,
                                                   FEATURES_RFE, C,
                                                   selector_s='RFE',
                                                   figure=True)
@@ -573,7 +578,8 @@ if __name__ == "__main__":
     print("Best retained features from RFE: {}".format(BEST_N_RFE))
     #%%Application of the trained classifier over test set.
 
-    PATH = args.testpath
+    #PATH = args.testpath
+    PATH = os.path.abspath('IMAGES/test_set')
     SUBJ = glob.glob(os.path.join(PATH, FILES))
 
     AD_IMAGES_T, AD_NAMES_T, CTRL_IMAGES_T, CTRL_NAMES_T = thread_pool(SUBJ)
@@ -583,17 +589,19 @@ if __name__ == "__main__":
     LAB, NMS = lab_names(CTRL_IMAGES_T, AD_IMAGES_T, CTRL_NAMES_T, AD_NAMES_T)
     TEST_SET_DATA, TEST_SET_LAB, TEST_NAMES = shuffle(DATA, LAB, NMS,
                                                          random_state=42)
-    start_pca_fred = perf_counter()
-    STAND_X_TRAIN = STAND_X
+    
+
     STAND_X_TEST = scaler.transform(TEST_SET_DATA)
     SHAPE = MEAN_MASK.shape
-
+    
+    
     CLASS = input("What classifier do you want to test on the reduced dataset: 'SVC' or 'SGD'?")
 
     print("Fitting PCA...")
-    SUPPORT_PCA, CLASSIFIER_PCA = rfe_pca_reductor(STAND_X_TRAIN, Y, CLASS,
+    start_pca_fred = perf_counter()
+    SUPPORT_PCA, CLASSIFIER_PCA = rfe_pca_reductor(STAND_X, Y, CLASS,
                                                    BEST_N_PCA, CS_PCA, 'PCA')
-    TEST_X_PCA, TEST_Y_PCA, FITTED_CLASSIFIER_PCA, M_PCA = new_data(STAND_X_TRAIN, Y,
+    TEST_X_PCA, TEST_Y_PCA, FITTED_CLASSIFIER_PCA, M_PCA = new_data(STAND_X, Y,
                                                              STAND_X_TEST,
                                                              TEST_SET_LAB,
                                                              SUPPORT_PCA,
@@ -606,9 +614,9 @@ if __name__ == "__main__":
     start_rfe_fred = perf_counter()
 
     print("Fitting RFE...")
-    SUPPORT_RFE, CLASSIFIER_RFE = rfe_pca_reductor(STAND_X_TRAIN, Y, CLASS,
+    SUPPORT_RFE, CLASSIFIER_RFE = rfe_pca_reductor(STAND_X, Y, CLASS,
                                                    BEST_N_RFE, CS_RFE, 'RFE')
-    TEST_X_RFE, TEST_Y_RFE, FITTED_CLASSIFIER_RFE, M_RFE = new_data(STAND_X_TRAIN, Y,
+    TEST_X_RFE, TEST_Y_RFE, FITTED_CLASSIFIER_RFE, M_RFE = new_data(STAND_X, Y,
                                                              STAND_X_TEST,
                                                              TEST_SET_LAB,
                                                              SUPPORT_RFE,
@@ -653,3 +661,4 @@ if __name__ == "__main__":
     FIG, AXS = roc_cv(TEST_X_PCA, TEST_Y_PCA, CLASSIFIER_PCA, CVS)
     FIG, AXS = roc_cv_trained(TEST_X_RFE, TEST_Y_RFE, FITTED_CLASSIFIER_RFE, CVS)
     FIG, AXS = roc_cv(TEST_X_RFE, TEST_Y_RFE, CLASSIFIER_RFE, CVS)
+    input("Press enter to exit.")
