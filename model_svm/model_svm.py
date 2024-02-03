@@ -520,8 +520,7 @@ if __name__ == "__main__":
     #%% Creation of the labels (-1,1).
     LABELS, NAMES = lab_names(CTRL_IMAGES, AD_IMAGES, CTRL_NAMES, AD_NAMES)
     #%% Shuffle of the train set.
-    X, Y, TRAIN_NAMES = shuffle(DATASET, LABELS, NAMES,
-                                                         random_state=42)
+    X, Y, TRAIN_NAMES = shuffle(DATASET, LABELS, NAMES, random_state=42)
     
     #%% Boxplot of selected features (given by "best practice" or manually).
     CLASS = input("Select Classifier between 'SVC' or 'SGD':")
@@ -614,10 +613,10 @@ if __name__ == "__main__":
     start_rfe_fred = perf_counter()
 
     print("Fitting RFE...")
-    SUPPORT_RFE, CLASSIFIER_RFE = rfe_pca_reductor(STAND_X, Y, CLASS,
+    SUPPORT_RFE, CLASSIFIER_RFE = rfe_pca_reductor(X, Y, CLASS,
                                                    BEST_N_RFE, CS_RFE, 'RFE')
-    TEST_X_RFE, TEST_Y_RFE, FITTED_CLASSIFIER_RFE, M_RFE = new_data(STAND_X, Y,
-                                                             STAND_X_TEST,
+    TEST_X_RFE, TEST_Y_RFE, FITTED_CLASSIFIER_RFE, M_RFE = new_data(X, Y,
+                                                             TEST_SET_DATA,
                                                              TEST_SET_LAB,
                                                              SUPPORT_RFE,
                                                              POS_VOX, SHAPE,
