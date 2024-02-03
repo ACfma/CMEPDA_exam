@@ -2,7 +2,6 @@
 
 CMEPDA_exam is a repository containing two Python modules capable to classify Alzheimer desease subjects from control's ones using GM segmented MRI images using a single training phase.
 
-The images used in order to create and test these classifiers can be found in the [IMAGES](https://github.com/ACfma/CMEPDA_exam/tree/main/IMAGES) folder.
 
 ---
 
